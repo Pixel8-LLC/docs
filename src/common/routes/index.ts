@@ -1,5 +1,6 @@
 import preval from 'preval.macro';
+import theRoutes from './get-routes';
 
-const routes = preval`module.exports = require('./get-routes')`;
+// const routes = preval(theRoutes);
 
-export default routes;
+export default preval(theRoutes());

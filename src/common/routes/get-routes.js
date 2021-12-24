@@ -62,24 +62,30 @@ const getHeadings = mdContent => {
     : null;
 };
 
-const routes = allRoutes.map(route => {
-  try {
-    const fileContent = fs.readFileSync(
-      path.join('./src/pages', `${route === '/' ? 'index' : route}.md`),
-      'utf8'
-    );
-    const data = fm(fileContent);
-    const headings = getHeadings(data.body);
-    return {
-      path: route,
-      ...data.attributes,
-      headings,
-    };
-  } catch (e) {
-    console.error('ROUTES ERROR');
-    console.warn(e);
-    throw new Error(e);
-  }
-});
+function generateRoutes () {
+  const theRoutes = allRoutes.map(route => {
+    try {
+      const fileContent = fs.readFileSync(
+        // I had to duplicate the index file inside of pages. TODO: fix this.
+        path.join('./src/pages', `${route === '/' ? 'index' : route}/index.md`),
+        'utf8'
+      );
 
-module.exports = routes;
+      const data = fm(fileContent);
+      const headings = getHeadings(data.body);
+      return {
+        path: route,
+        ...data.attributes,
+        headings,
+      };
+    } catch (e) {
+      console.error('ROUTES ERROR');
+      console.warn(e);
+      throw new Error(e);
+    }
+  });
+
+  return theRoutes;
+}
+
+export default generateRoutes;
