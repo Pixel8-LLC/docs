@@ -52,6 +52,8 @@ const getFlatMap = navigation => {
   );
 };
 
+console.log('navigation', navigation)
+
 const allRoutes = getFlatMap(navigation).filter(route => route);
 
 const getHeadings = mdContent => {
@@ -62,30 +64,24 @@ const getHeadings = mdContent => {
     : null;
 };
 
-function generateRoutes () {
-  const theRoutes = allRoutes.map(route => {
-    try {
-      const fileContent = fs.readFileSync(
-        // I had to duplicate the index file inside of pages. TODO: fix this.
-        path.join('./src/pages', `${route === '/' ? 'index' : route}/index.md`),
-        'utf8'
-      );
+const routes = allRoutes.map(route => {
+  try {
+    const fileContent = fs.readFileSync(
+      path.join('./src/pages', `${route === '/' ? 'index' : route}/index.md`),
+      'utf8'
+    );
+    const data = fm(fileContent);
+    const headings = getHeadings(data.body);
+    return {
+      path: route,
+      ...data.attributes,
+      headings,
+    };
+  } catch (e) {
+    console.error('ROUTES ERROR');
+    console.warn(e);
+    throw new Error(e);
+  }
+});
 
-      const data = fm(fileContent);
-      const headings = getHeadings(data.body);
-      return {
-        path: route,
-        ...data.attributes,
-        headings,
-      };
-    } catch (e) {
-      console.error('ROUTES ERROR');
-      console.warn(e);
-      throw new Error(e);
-    }
-  });
-
-  return theRoutes;
-}
-
-export default generateRoutes;
+module.exports = routes;
