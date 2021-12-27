@@ -6,6 +6,7 @@ export const initialState: State = {
   mobileMenu: false,
   activeSlug: '',
   setState: (value: any) => null,
+  locale: 'en',
   routes,
   searchModal: 'closed',
 };
