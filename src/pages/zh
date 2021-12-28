@@ -1,8 +1,10 @@
 ---
-title: Glossary
-description: A comprehensive list of terms used within the ecosystem.
+title: Functions
+description: See a detailed list of all functions for the Clarity language.
 ---
 
-export { convertGlossaryToJson as getStaticProps } from '@common/data/glossary' import { Glossary } from '@components/glossary'
+export { convertClarityRefToMdx as getStaticProps } from '@common/data/clarity-ref' import { ClarityFunctionReference } from '@components/clarity-ref'
 
-<Glossary data={props.glossary} />
+## Function reference
+
+<ClarityFunctionReference {...props.mdx.functions} />
