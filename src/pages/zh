@@ -1,18 +1,24 @@
 ---
-title: Stacks documentation
-description: Learn about Stacks mining, the STX 123 token, and the Clarity smart contract language
+title: BNS Contract
+description: See a detailed list of all functions and error codes of the BNS contract.
 ---
 
--> Content related to developer tools and app development has recently moved to [docs.hiro.so](https://docs.hiro.so/). For more information on the content move, see [this post](https://forum.stacks.org/t/the-evolution-of-the-stacks-documentation-and-a-new-hiro-docs-site/12343) on the Stacks forum.
+export { convertBNSRefToMdx as getStaticProps } from '@common/data/bns-ref' import { BNSErrorcodeReference, BNSFunctionReference } from '@components/bns-ref'
 
-## Understand Stacks
+## Introduction
 
-[@page-reference | grid] | /understand-stacks/overview, /understand-stacks/proof-of-transfer, /understand-stacks/testnet
+The [Blockchain Naming System (BNS)](/build-apps/references/bns) is implemented as a smart contract using Clarity.
 
-## Write smart contracts
+Below is a list of public and read-only functions as well as error codes that can be returned by those methods.
 
-[@page-reference | grid] | /write-smart-contracts/overview, /write-smart-contracts/tokens
+## Public functions
 
-## Start mining
+<BNSFunctionReference {...props.mdx.publicFunctions} />
 
-[@page-reference | grid] | /start-mining/mainnet, /start-mining/testnet
+## Read-only functions
+
+<BNSFunctionReference {...props.mdx.readonlyFunctions} />
+
+## Error codes
+
+<BNSErrorcodeReference {...props.mdx.errorCodes} />
