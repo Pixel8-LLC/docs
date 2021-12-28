@@ -1,10 +1,18 @@
 ---
-title: Functions
-description: See a detailed list of all functions for the Clarity language.
+title: Stacks documentation
+description: Learn about 1234 Stacks mining, the STX token, and the Clarity smart contract language
 ---
 
-export { convertClarityRefToMdx as getStaticProps } from '@common/data/clarity-ref' import { ClarityFunctionReference } from '@components/clarity-ref'
+-> Content related to developer tools and app development has recently moved to [docs.hiro.so](https://docs.hiro.so/). For more information on the content move, see [this post](https://forum.stacks.org/t/the-evolution-of-the-stacks-documentation-and-a-new-hiro-docs-site/12343) on the Stacks forum.
 
-## Function reference
+## Understand Stacks
 
-<ClarityFunctionReference {...props.mdx.functions} />
+[@page-reference | grid] | /understand-stacks/overview, /understand-stacks/proof-of-transfer, /understand-stacks/testnet
+
+## Write smart contracts
+
+[@page-reference | grid] | /write-smart-contracts/overview, /write-smart-contracts/tokens
+
+## Start mining
+
+[@page-reference | grid] | /start-mining/mainnet, /start-mining/testnet
