@@ -1,352 +1,513 @@
 ---
-title: Mine mainnet Stacks tokens
-description: Set up and run a miner on the Stacks 2.0 mainnet
-icon: MainnetIcon
-experience: beginners
-duration: 10 minutes
-tags:
-  - tutorial
+title: Stacks Node Configuration
+description: Configuration parameters and options for the stacks-node binary
+icon: TestnetIcon
 images:
-  large: /images/pages/start-mining.svg
-  sm: /images/pages/start-mining-sm.svg
+  large: /images/pages/testnet.svg
+  sm: /images/pages/testnet-sm.svg
 ---
 
-## Introduction
-
-Make sure you've followed the [Running mainnet node](/understand-stacks/running-mainnet-node) procedure. Once completed it's only a few more steps to run a proof-of-burn miner on the mainnet.
-
-If you're interested in mining on the testnet, you can find instructions on how to do that here:
-
-[@page-reference | inline] | /start-mining/testnet
-
-If you want to learn more about the technical details of mining, please review the mining guide:
-
-[@page-reference | inline] | /understand-stacks/mining
-
-## Running bitcoind locally
-
-To participate as a miner on mainnet, you must have access to a mainnet bitcoin node. One way to accomplish this is to run bitcoind locally. [Ensure your computer meets the minimum hardware requirements before continuing.](https://bitcoin.org/en/bitcoin-core/features/requirements)
-
-First, download the bitcoind software for your platform from https://bitcoin.org/en/download.
-
-Next, start bitcoind with the following configuration:
-
-```toml
-server=1
-rpcuser=your-bitcoind-username
-rpcpassword=your-bitcoind-password
-txindex=0
-listen=1
-rpcserialversion=0
-maxorphantx=1
-banscore=1
-bind=0.0.0.0:8333
-rpcbind=0.0.0.0:8332
-rpcport=8332
-```
-
-Finally, start bitcoind as follows:
+## Usage
 
 ```bash
-bitcoind -conf=path/to/bitcoin.conf
+stacks-node sub-command [--subcommand-option <value>]
 ```
 
-It may take a few days for the node to synchronize with the Bitcoin mainnet.
+## Subcommands
 
-## Running a miner
+-> Note that the `stacks-node` binary may have deprecated commands that are not documented on this page. Deprecated commands may be accessible until they are fully removed from the sources.
 
-First, a keychain needs to be generated. With this keychain, we'll purchase some BTC from a crytpocurrency exchange, and then use that BTC to start mining.
+### mocknet
 
-To get a keychain, the simplest way is to use the `stacks-cli`. We'll use the `make_keychain` command.
+Start a node based on a fast local setup emulating a burnchain. Ideal for smart contract development.
+
+Example:
 
 ```bash
-npx @stacks/cli make_keychain 2>/dev/null | json_pp > keychain.txt
+stacks-node mocknet
 ```
 
-After this runs, you should see some JSON in the new `keychain.txt` file that looks like this:
+### krypton
 
-```json
-{
-  "mnemonic": "exhaust spin topic distance hole december impulse gate century absent breeze ostrich armed clerk oak peace want scrap auction sniff cradle siren blur blur",
-  "keyInfo": {
-    "privateKey": "2033269b55026ff2eddaf06d2e56938f7fd8e9d697af8fe0f857bb5962894d5801",
-    "address": "STTX57EGWW058FZ6WG3WS2YRBQ8HDFGBKEFBNXTF",
-    "btcAddress": "mkRYR7KkPB1wjxNjVz3HByqAvVz8c4B6ND",
-    "index": 0
-  }
-}
-```
+Start a node that will join and stream blocks from the public krypton regtest, powered by Blockstack via [Proof of Transfer](/understand-stacks/overview#proof-of-transfer-pox).
 
-**Don't lose this information** - we'll need to use the `privateKey` field later on.
-
-The above BTC address will then need to be imported into the BTC network.
+Example:
 
 ```bash
-bitcoin-cli -rpcport=8332 -rpcuser=your-user -rpcpassword=your-password importaddress <btcAddress from JSON above>
+stacks-node krypton
 ```
 
-Once imported, we need to get some BTC to that address. You should be able to transfer BTC to this address using a crytpocurrency exchange such as [Coinbase](https://www.coinbase.com), [Binance](https://www.binance.com), or [Kraken](https://www.kraken.com).
+### xenon
 
-Now, we need to configure our node to use this Bitcoin keychain. Clone the [stacks-blockchain repository](https://github.com/blockstack/stacks-blockchain) to your local machine if you haven't already. In the `stacks-blockchain` folder, modify the file at [`testnet/stacks-node/conf/mainnet-miner-conf.toml`](https://github.com/blockstack/stacks-blockchain/blob/master/testnet/stacks-node/conf/mainnet-miner-conf.toml).
+Start a node that will join and stream blocks from the public xenon testnet.
 
-Update the following properties:
-
-```toml
-[node]
-...
-# Enter your private key here
-seed = "replace-with-your-private-key"
-local_peer_seed = "replace-with-your-private-key"
-...
-
-[burnchain]
-...
-# To mine on mainnet, you need to run bitcoind locally
-# Details can be found in above section, 'Running bitcoind locally'
-peer_host = "127.0.0.1"
-username = "<USERNAME>"
-password = "<PASSWORD>"
-...
-```
-
-Now, grab your `privateKey` from earlier, when you ran the `make_keychain` command. Replace the `seed` field with your private key. Save and close this configuration file.
-
-To run your miner, run this in the command line:
+Example:
 
 ```bash
-stacks-node start --config=./testnet/stacks-node/conf/mainnet-miner-conf.toml
+stacks-node xenon
 ```
 
-Your node should start. It will take some time to sync, and then your miner will be running.
+### mainnet
 
-### Creating an optimized binary
+Start a node that joins and streams blocks from the public mainnet.
 
-The steps above are great for trying to run a node temporarily. If you want to host a node on a server somewhere, you might want to generate an optimized binary. To do so, use the same configuration as above, but run:
+Example:
 
 ```bash
-cd testnet/stacks-node
-cargo build --release --bin stacks-node
+stacks-node mainnet
 ```
 
-The above code will compile an optimized binary. To use it, run:
+### start
+
+Start a node with a config of your own. Can be used for joining a network, starting a new chain, or replacing default values used by the `mocknet` or `xenon` subcommands.
+
+#### Arguments
+
+**--config**: relative or absolute path to the TOML config file. Required.
+
+Example:
 
 ```bash
-cd ../..
-./target/release/stacks-node start --config=./mainnet-miner-conf.toml
+stacks-node start --config=/path/to/config.toml
 ```
 
-For a full reference of subcommands and configuration options used by `stacks-node`, please see this page.
+See [Configuration File Options](#configuration-file-options) for more information.
 
-[@page-reference | inline] | /references/stacks-node-configuration
+#### version
 
-To read more about the technical details of mining on the Stacks 2.0 network, have a look at the minig guide:
+Displays information about the current version and the release cycle.
 
-[@page-reference | inline] | /understand-stacks/mining
-
-### Enable debug logging
-
-In case you are running into issues or would like to see verbose logging, you can run your node with debug logging enabled. In the command line, run:
+Example:
 
 ```bash
-STACKS_LOG_DEBUG=1 stacks-node mainnet
+stacks-node version
 ```
 
-## Running a miner in Windows
+#### help
 
-### Prerequisites
+Displays a help message.
 
-Make sure you've followed the [Running the mainnet node on Windows](/understand-stacks/running-mainnet-node#running-the-mainnet-node-on-windows) tutorial and [Running itcoind locally](#running-bitcoind-locally) section above before starting this tutorial.
-
-### Generate keychain and get mainnet tokens in Windows
-
-To setup the miner, first we need to generate a keychain. With this keychain, we'll purchase some BTC from a crytpocurrency exchange, and then use that BTC to start mining.
-
-To get a keychain, the simplest way is to use the `stacks-cli`. We'll use the `stx make-keychain` command.
-
-Generate a keychain:
+Example:
 
 ```bash
-npm install --global @stacks/cli
-stx make_keychain > cli_keychain.json
-type cli_keychain.json
+stacks-node help
 ```
 
-After this runs, you'll probably see some installation logs, and at the end you should see some JSON that looks like this:
+## Configuration File Options
 
-```json
-{
-  "mnemonic": "exhaust spin topic distance hole december impulse gate century absent breeze ostrich armed clerk oak peace want scrap auction sniff cradle siren blur blur",
-  "keyInfo": {
-    "privateKey": "2033269b55026ff2eddaf06d2e56938f7fd8e9d697af8fe0f857bb5962894d5801",
-    "address": "STTX57EGWW058FZ6WG3WS2YRBQ8HDFGBKEFBNXTF",
-    "btcAddress": "mkRYR7KkPB1wjxNjVz3HByqAvVz8c4B6ND",
-    "index": 0
-  }
-}
-```
+The TOML configuration file has multiple sections under which an option may be placed.
 
--> Check out the [Stacks CLI reference](https://docs.hiro.so/references/stacks-cli) for more details
+To see a list of example configurations, [please see this page](https://github.com/blockstack/stacks-blockchain/tree/master/testnet/stacks-node/conf).
 
-The above BTC address will then need to be imported into the BTC network.
+### Section: node
 
-```bash
-bitcoin-cli -rpcport=8332 -rpcuser=your-user -rpcpassword=your-password importaddress <btcAddress from JSON above>
-```
+Contains various configuration options pertaining to the stacks-node.
 
-Once imported, we need to get some BTC to that address. You should be able to transfer BTC to this address using a crytpocurrency exchange such as [Coinbase](https://www.coinbase.com), [Binance](https://www.binance.com), or [Kraken](https://www.kraken.com).
-
-### Update configuration file
-
-Now, we need to configure our node to use this Bitcoin keychain. Clone the [stacks-blockchain repository](https://github.com/blockstack/stacks-blockchain) to your local machine if you haven't already. In the `stacks-blockchain` folder, modify the file at [`testnet/stacks-node/conf/mainnet-miner-conf.toml`](https://github.com/blockstack/stacks-blockchain/blob/master/testnet/stacks-node/conf/mainnet-miner-conf.toml).
-
-Update the following properties:
+Example:
 
 ```toml
 [node]
-...
+rpc_bind = "0.0.0.0:20443"
+p2p_bind = "0.0.0.0:20444"
 # Enter your private key here
 seed = "replace-with-your-private-key"
-local_peer_seed = "replace-with-your-private-key"
-...
-
-[burnchain]
-...
-# To mine on mainnet, you need to run bitcoind locally
-# Details can be found in above section, 'Running bitcoind locally'
-peer_host = "127.0.0.1"
-username = "<USERNAME>"
-password = "<PASSWORD>"
-...
+miner = true
 ```
 
-Now, grab your `privateKey` from earlier, when you ran the `stx make_keychain` command. Replace the seed field with your private key. Save and close this configuration file.
+#### working_dir (optional)
 
-### Run the miner
+Absolute path to the directory which the stacks-node will use for storing various data. Until [issue 1576](https://github.com/blockstack/stacks-blockchain/issues/1576) is resolved, this option is unsupported -- use at your own risk.
 
-To start your miner, run this in the command line:
-
-```bash
-stacks-node start --config=testnet/stacks-node/conf/mainnet-miner-conf.toml
-```
-
--> **Note** : While starting the node for the first time, windows defender might pop up with a message to allow access. If so, allow access to run the node. ![Windows Defender](/images/windows-defender.png)
-
-Your node should start. It will take some time to sync, and then your miner will be running.
-
-### Enable debug logging in Windows
-
-In case you are running into issues or would like to see verbose logging, you can run your node with debug logging enabled. In the command line, run:
-
-```bash
-set RUST_BACKTRACE=full;
-set STACKS_LOG_DEBUG=1;
-stacks-node start --config=mainnet-miner-conf.toml
-```
-
-## Optional: Running with Docker
-
-Alternatively, you can run the mainnet node with Docker.
-
--> Ensure you have [Docker](https://docs.docker.com/get-docker/) installed on your machine.
-
-### Generate keychain and get tokens
-
-Generate a keychain:
-
-```bash
-docker run -i node:14-alpine npx @stacks/cli make_keychain 2>/dev/null
-```
-
-We need to get some BTC to that address. You should be able to transfer BTC to this address using a crytpocurrency exchange such as [Coinbase](https://www.coinbase.com), [Binance](https://www.binance.com), or [Kraken](https://www.kraken.com).
-
-### Update configuration file
-
-Now, we need to configure our node to use this Bitcoin keychain. Clone the [stacks-blockchain repository](https://github.com/blockstack/stacks-blockchain) to your local machine if you haven't already. In the `stacks-blockchain` folder, modify the file at [`testnet/stacks-node/conf/mainnet-miner-conf.toml`](https://github.com/blockstack/stacks-blockchain/blob/master/testnet/stacks-node/conf/mainnet-miner-conf.toml).
-
-Update the following properties:
+Example:
 
 ```toml
-[node]
-...
-# Enter your private key here
+working_dir = "/root/stacks-node"
+```
+
+#### rpc_bind
+
+Address and port stacks-node should bind to for RPC connections.
+
+Example:
+
+```toml
+rpc_bind = "0.0.0.0:20443"
+```
+
+#### p2p_bind
+
+Address and port stacks-node should bind to for P2P connections.
+
+Example:
+
+```toml
+p2p_bind = "0.0.0.0:20444"
+```
+
+#### data_url (optional)
+
+Address and port from which the stacks-node will be receiving incoming rpc connections.
+
+Example:
+
+```toml
+data_url = "1.2.3.4:20443"
+```
+
+#### p2p_address (optional)
+
+Address and port from which the stacks-node will be receiving incoming p2p connections.
+
+Example:
+
+```toml
+p2p_address = "1.2.3.4:20444"
+```
+
+#### bootstrap_node (optional)
+
+Public key, address, and port stacks-node should use to pull transaction data from when starting.
+
+Example:
+
+```toml
+bootstrap_node = "047435c194e9b01b3d7f7a2802d6684a3af68d05bbf4ec8f17021980d777691f1d51651f7f1d566532c804da506c117bbf79ad62eea81213ba58f8808b4d9504ad@xenon.blockstack.org:20444"
+```
+
+#### wait_time_for_microblocks (optional)
+
+The amount of time (in milliseconds) that a node will wait before trying to mine a block, after catching up to the anchored chain tip. This gives the current leader time to broadcast microblocks that will get included in that mined block.
+
+Example:
+
+```toml
+wait_time_for_microblocks = 15000
+```
+
+#### seed (optional)
+
+The private key to use for mining. Only needed if `miner` is set to `true`.
+
+[See this page for information on how to generate a private key.](/start-mining)
+
+Example:
+
+```toml
 seed = "replace-with-your-private-key"
+```
+
+#### local_peer_seed (optional)
+
+The private key to use for signing P2P messages in the networking stack. It differentiates network peers and is used even by non-mining nodes.
+
+[See this page for information on how to generate a private key.](/start-mining)
+
+Example:
+
+```toml
 local_peer_seed = "replace-with-your-private-key"
-...
+```
 
+#### miner (optional)
+
+Determines whether the stacks-node is running a follower (`false`) or a miner (`true`). Defaults to `false` if omitted.
+
+[See this page for information on how to run a miner.](/start-mining)
+
+Example:
+
+```toml
+miner = true
+```
+
+#### mine_microblocks (optional)
+
+Determines whether the stacks-node will mine microblocks. Will only take effect if `miner` is set to `true`.
+
+[See this page for information on how to run a miner.](/start-mining)
+
+Example:
+
+```toml
+mine_microblocks = true
+```
+
+#### prometheus_bind (optional)
+
+Address and port stacks-node should open for Prometheus metrics collection.
+
+Example:
+
+```toml
+prometheus_bind = "0.0.0.0:9153"
+```
+
+### Section: events_observer (optional)
+
+Contains options for watching events emitted by a local [stacks-blockchain-api](https://github.com/blockstack/stacks-blockchain-api) service.
+
+-> This section can be repeated multiple times.
+
+Example:
+
+```toml
+[[events_observer]]
+endpoint = "address-to-my-local.stacks-node-api.com:3700"
+retry_count = 255
+events_keys = ["*"]
+```
+
+#### endpoint
+
+Address and port to a stacks-node-api to watch for events.
+
+Example:
+
+```toml
+endpoint = "address-to-my-local.stacks-node-api.com:3700"
+```
+
+#### retry_count
+
+Number of times to retry sending events to the endpoint before failing.
+
+Example:
+
+```toml
+retry_count = 255
+```
+
+#### events_keys
+
+Event keys for which to watch. The emitted node events can be restricted by account, function name and event type. Asterix ("\*") can be used to emit all events.
+
+Examples:
+
+```toml
+events_keys = ["*"]
+```
+
+```toml
+events_keys = [
+    "STGT7GSMZG7EA0TS6MVSKT5JC1DCDFGZWJJZXN8A.store::print",
+    "STGT7GSMZG7EA0TS6MVSKT5JC1DCDFGZWJJZXN8A.contract.ft-token",
+    "STGT7GSMZG7EA0TS6MVSKT5JC1DCDFGZWJJZXN8A.contract.nft-token",
+    "stx"
+]
+```
+
+### Section: connection_options (optional)
+
+Specifies configuration options for others connecting to the stacks node.
+
+Example:
+
+```toml
+[connection_options]
+public_ip_address = "1.2.3.4:20444"
+download_interval = 60
+walk_interval = 30
+```
+
+#### public_ip_address
+
+The advertised public IP of this stacks-node.
+
+Example:
+
+```toml
+public_ip_address = "1.2.3.4:20444"
+```
+
+#### download_interval
+
+Time (in seconds) between attempts to download blocks.
+
+Example:
+
+```toml
+download_interval = 60
+```
+
+#### walk_interval
+
+Time (in seconds) between attempts to walk the neighborhood.
+
+Example:
+
+```toml
+walk_interval = 30
+```
+
+#### read_only_call_limit_read_length
+
+Total number of bytes allowed to be read by an individual read-only function call.
+
+Example:
+
+```toml
+read_only_call_limit_read_length = 100000
+```
+
+#### read_only_call_limit_read_count
+
+Total number of independent read operations permitted for an individual read-only function call.
+
+Example:
+
+```toml
+read_only_call_limit_read_count = 30
+```
+
+#### read_only_call_limit_runtime
+
+[Runtime cost](https://github.com/stacksgov/sips/blob/2d3fd9bf8da7a04f588d90ff6252173d7609d7bf/sips/sip-006/sip-006-runtime-cost-assessment.md#introduction) limit for an individual read-only function call.
+
+Example:
+
+```toml
+read_only_call_limit_runtime = 1000000000
+```
+
+### Section: burnchain
+
+This section contains configuration options pertaining to the blockchain the stacks-node binds to on the backend for proof-of-transfer (BTC).
+
+Example:
+
+```toml
 [burnchain]
-...
-# To mine on mainnet, you need to run bitcoind locally
-# Details can be found in above section, 'Running bitcoind locally'
-peer_host = "127.0.0.1"
-username = "<USERNAME>"
-password = "<PASSWORD>"
-...
+chain = "bitcoin"
+mode = "mainnet"
+peer_host = "your.bitcoind.node.org"
+rpc_port = 8332
+peer_port = 8333
 ```
 
-Now, grab your `privateKey` from earlier, when you ran the `stx make_keychain` command. Replace the seed field with your private key. Save and close this configuration file.
+#### chain
 
-### Start the miner
+The blockchain stacks-node binds to on the backend for proof-of-transfer. Only value supported: `"bitcoin"`.
 
--> The ENV VARS `RUST_BACKTRACE` and `STACKS_LOG_DEBUG` are optional. If removed, debug logs will be disabled
+Example:
 
-```bash
-docker run -d \
-  --name stacks_miner \
-  --rm \
-  --network host \
-  -e RUST_BACKTRACE="full" \
-  -e STACKS_LOG_DEBUG="1" \
-  -v "$(pwd)/testnet/stacks-node/conf/mainnet-miner-conf.toml:/src/stacks-node/mainnet-miner-conf.toml" \
-  -p 20443:20443 \
-  -p 20444:20444 \
-  blockstack/stacks-blockchain:latest \
-/bin/stacks-node start --config /src/stacks-node/mainnet-miner-conf.toml
+```toml
+chain = "bitcoin"
 ```
 
-You can review the node logs with this command:
+#### mode
 
-```bash
-docker logs -f stacks_miner
+The profile or test phase of which to run stacks-node. Valid values are `"mocknet"`, `"helium"`, `"neon"`, `"argon"`, `"krypton"`, `"xenon"`.
+
+Example:
+
+```toml
+mode = "xenon"
 ```
 
-## Optional: Running in Kubernetes with Helm
+#### peer_host
 
-In addition, you're also able to run a mainnet node in a Kubernetes cluster using the [stacks-blockchain Helm chart](https://github.com/blockstack/stacks-blockchain/tree/master/deployment/helm/stacks-blockchain).
+Domain name of the host running the backend Bitcoin blockchain. It's required to either run a personal Bitcoin node locally, or to use a publicly hosted Bitcoin node.
 
-Ensure you have the following prerequisites installed on your machine:
+Example:
 
-- [Docker](https://docs.docker.com/get-docker/)
-- [minikube](https://minikube.sigs.k8s.io/docs/start/) (Only needed if standing up a local Kubernetes cluster)
-- [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
-- [helm](https://helm.sh/docs/intro/install/)
-
-### Generate keychain and get some tokens
-
-Generate a keychain:
-
-```bash
-docker run -i node:14-alpine npx @stacks/cli make_keychain 2>/dev/null
+```toml
+peer_host = "your.bitcoind.node.org"
 ```
 
-We need to get some BTC to that address. You should be able to transfer BTC to this address using a crytpocurrency exchange such as [Coinbase](https://www.coinbase.com), [Binance](https://www.binance.com), or [Kraken](https://www.kraken.com).
+#### rpc_port
 
-### Install the chart and run the miner
+peer_host's port stacks-node will connect to for RPC connections.
 
-To install the chart with the release name `my-release` and run the node as a miner:
+Example:
 
-```bash
-minikube start # Only run this if standing up a local Kubernetes cluster
-helm repo add blockstack https://charts.blockstack.xyz
-helm install my-release blockstack/stacks-blockchain \
-  --set config.node.miner=true \
-  --set config.node.seed="replace-with-your-privateKey-from-generate-keychain-step" \
-  --set config.burnchain.mode="mainnet"
+```toml
+rpc_port = 8332
 ```
 
-You can review the node logs with this command:
+#### peer_port
 
-```bash
-kubectl logs -l app.kubernetes.io/name=stacks-blockchain
+peer_host's port stacks-node will connect to for P2P connections.
+
+Example:
+
+```toml
+peer_port = 8333
 ```
 
-For more information on the Helm chart and configuration options, please refer to the [chart's homepage](https://github.com/blockstack/stacks-blockchain/tree/master/deployment/helm/stacks-blockchain).
+#### burn_fee_cap (optional)
+
+Maximum amount (in Satoshis) of "burn commitment" to broadcast for the next block's leader election.
+
+Example:
+
+```toml
+burn_fee_cap = 30000
+```
+
+#### satoshis_per_byte (optional)
+
+Amount (in Satoshis) per [virtual byte](https://en.bitcoin.it/wiki/Weight_units). This is used to compute the transaction fees.
+
+Example:
+
+```toml
+satoshis_per_byte = 50
+```
+
+So total transaction cost would be `(estimated_tx_size * satoshis_per_byte) + burn_fee_cap`.
+
+#### commit_anchor_block_within (optional)
+
+Sets the time period (in milliseconds) for commitments. Only used when `mode` is set to `"helium"`.
+
+Example:
+
+```toml
+commit_anchor_block_within = 10000
+```
+
+### Section: ustx_balance (testnet/regtest only)
+
+This section contains configuration options pertaining to the genesis block allocation for an address in micro-STX. If a user changes these values, their node may be in conflict with other nodes on the network and find themselves unable to sync with other nodes.
+
+-> This section can repeat multiple times, and thus is in double-brackets. Each section can define only one address. This section is ignored if running a node on mainnet.
+
+Example:
+
+```toml
+[[ustx_balance]]
+address = "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6"
+amount = 10000000000000000
+
+[[ustx_balance]]
+address = "ST11NJTTKGVT6D1HY4NJRVQWMQM7TVAR091EJ8P2Y"
+amount = 10000000000000000
+
+[[ustx_balance]]
+address = "ST1HB1T8WRNBYB0Y3T7WXZS38NKKPTBR3EG9EPJKR"
+amount = 10000000000000000
+
+[[ustx_balance]]
+address = "STRYYQQ9M8KAF4NS7WNZQYY59X93XEKR31JP64CP"
+amount = 10000000000000000
+```
+
+#### address
+
+Address which maintains a micro-STX balance.
+
+Example:
+
+```toml
+address = "STB44HYPYAT2BB2QE513NSP81HTMYWBJP02HPGK6"
+```
+
+#### amount
+
+The balance of micro-STX given to the address at the start of the node.
+
+Example:
+
+```toml
+amount = 10000000000000000
+```
