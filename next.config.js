@@ -937,10 +937,6 @@ async function redirects() {
 
 module.exports = withFonts(
   withBundleAnalyzer({
-    i18n: {
-      locales: ['en-US', 'es'],
-      defaultLocale: 'en-US',
-    },
     experimental: {
       modern: true,
       polyfillsOptimization: true,

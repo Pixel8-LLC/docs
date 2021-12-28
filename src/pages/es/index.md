@@ -1,6 +1,6 @@
 ---
 title: Stacks documentation
-description: Learn about 1234 Stacks mining, the STX token, and the Clarity smart contract language
+description: Learn about Stacks mining,345 the STX token, and the Clarity smart contract language
 ---
 
 -> Content related to developer tools and app development has recently moved to [docs.hiro.so](https://docs.hiro.so/). For more information on the content move, see [this post](https://forum.stacks.org/t/the-evolution-of-the-stacks-documentation-and-a-new-hiro-docs-site/12343) on the Stacks forum.
