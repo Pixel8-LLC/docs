@@ -1,10 +1,10 @@
 ---
-title: Functions
-description: See a detailed list of all functions for the Clarity language.
+title: Keywords
+description: See a detailed list of all keywords for the Clarity language.
 ---
 
-export { convertClarityRefToMdx as getStaticProps } from '@common/data/clarity-ref' import { ClarityFunctionReference } from '@components/clarity-ref'
+export { convertClarityRefToMdx as getStaticProps } from '@common/data/clarity-ref' import { ClarityKeywordReference } from '@components/clarity-ref'
 
-## Function reference
+## Keyword reference
 
-<ClarityFunctionReference {...props.mdx.functions} />
+<ClarityKeywordReference {...props.mdx.keywords} />
