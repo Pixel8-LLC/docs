@@ -1,72 +1,343 @@
 ---
-title: Technical Specifications
-description: Summary of technical specifications of Stacks 2.0
+title: Mine testnet Stacks tokens
+description: Set up and run a miner on the Stacks 2.0 testnet
+icon: TestnetIcon
+experience: beginners
+duration: 10 minutes
+tags:
+  - tutorial
+images:
+  large: /images/pages/start-mining.svg
+  sm: /images/pages/start-mining-sm.svg
 ---
 
-## Consensus
+## Introduction
 
-- Proof of Transfer (PoX) as described in [SIP-007](https://github.com/stacksgov/sips/blob/main/sips/sip-007/sip-007-stacking-consensus.md)
-- Network will transition to Proof of Burn (PoB) as described in [SIP-001](https://github.com/stacksgov/sips/blob/main/sips/sip-001/sip-001-burn-election.md) after 10 years. [Learn more about Proof-of-Burn in SIP-001](https://github.com/stacksgov/sips/blob/main/sips/sip-001/sip-001-burn-election.md).
-- Threat model
-  - 51% of malicious Stacks mining power can perform a double-spend attack
-  - 51% of malicious Bitcoin mining power can reorg the Stacks chain
-- Different actors and their roles
-  - Stacks Miners package transactions into blocks, mine them through a Bitcoin transaction, propagate them, and if they win the block race, append microblocks to their winning block until the next block is mined. The next block confirms the microblock stream.
-  - Stacks Holders may alter the calculation of block limits (subject to a miner veto) and may vote to disable Proof-of-Transfer rewards for a reward cycle.
-- Transactions are considered final when the corresponding "block commit" transaction on Bitcoin is finalized. Typically this can by 3-6 confirmations.
-- For more details, see [Proof of Transfer](/understand-stacks/proof-of-transfer).
+Make sure you've followed the [Running testnet node](/understand-stacks/running-testnet-node) procedure. Once completed it's only a few more steps to run a proof-of-burn miner on the testnet.
 
-## Proof of Transfer Mining
+If you want to learn more about the technical details of mining, please review the mining guide:
 
-- Coinbase reward schedule:
-  - 1000 STX/block for first 4 years
-  - 500 STX/block for following 4 years
-  - 250 STX/block for subsequent 4 years
-  - 125 STX/block in perpetuity after that
-- Coinbase rewards accumulate for "missed sortitions": If a Bitcoin block has no sortition (at height N), then any Stacks block mined in a subsequent sortition that builds off of any Stacks chain tip that existed at the penultimate sortition (at height N-1) may claim its coinbase. This encourages miners to keep mining even if Bitcoin fees are high.
-- Initial mining bonus: This is a special case of the above to incentivize early miners. Coinbase for all burnchain blocks between the first burn block height (to be chosen by independent miners as part of the Stacks 2.0 launch) and the first sortition winner accumulate and are distributed to miners over a fixed window (to be determined). For instance, say burn block height is 10,000 and first sortition is at block 10500 and distribution window is 100 blocks, then coinbase for the first 500 blocks (10,500 - 10,000) will be distributed evenly to miners who win sortition over the subsequent 100 blocks.
-- Reward maturity window: 100 blocks, meaning leaders will earn the coinbase reward 100 blocks after the block they successfully mine.
-- Block interval: Stacks blockchain produces blocks at the same rate as the underlying burnchain. For Bitcoin, this is approximately every 10 minutes.
-- BTC commitment: Miners must commit at least 11,000 satoshis (5,500 sats / [UTXO output](https://learnmeabitcoin.com/technical/utxo)); 2 outputs / block) to avoid "dust."
-- For more details, see [Mining](/understand-stacks/mining).
+[@page-reference | inline] | /understand-stacks/mining
 
-## Stacking
+## Running bitcoind locally
 
-- Stacking works in 2 phases
-  1. Prepare phase: In this phase an "anchor block" is chosen. The qualifying set of addresses ("reward set") is determined based on the snapshot of the chain at the anchor block. Length of prepare phase is 100 blocks. Stacking commitments need to be confirmed before this phase starts
-  2. Reward phase: In this phase miner BTC commitments are distributed amongst the reward set. Reward cycle length is 2000 BTC blocks (~2 weeks).
-- Two reward addresses / block, for a total of 4000 addresses every reward cycle. The addresses are chosen using a VRF (verifiable random function), so each node can deterministically arrive at the same reward addresses for a given block.
-- Stacking threshold: 0.025% of the participating amount of STX when participation is between 25% and 100% and when participation is below 25%, the threshold level is always 0.00625 of the liquid supply of STX.
-- Delegation: An STX address can designate another address to participate in Stacking on its behalf. [Relevant section in SIP-007](https://github.com/stacksgov/sips/blob/main/sips/sip-007/sip-007-stacking-consensus.md#stacker-delegation).
-- Pooling: STX holders that individually do not meet the Stacking threshold can pool together their holdings to participate in Stacking. To do this, STX holders must set the (optional) reward address to the "delegate address." For more details, see [this reference](https://docs.stacks.co/references/stacking-contract#delegate-stx).
-- Only two types of BTC reward addresses are supported: [Legacy (P2PKH)](https://en.bitcoin.it/wiki/Transaction#Pay-to-PubkeyHash) or [Segregated Witness / Segwit (P2SH)](https://en.bitcoin.it/wiki/Pay_to_script_hash). Native Segwit is not supported.
-- Further reading: [Stacking](/stacks-blockchain/stacking)
+To participate as a miner on Xenon, you must have access to a testnet bitcoin node. One way to accomplish this is to run bitcoind locally. [Ensure your computer meets the minimum hardware requirements before continuing.](https://bitcoin.org/en/bitcoin-core/features/requirements)
 
-## Accounts and Addresses
+First, download the bitcoind software for your platform from https://bitcoin.org/en/download.
 
-- Transactions in the Stacks blockchain originate from, are paid for by, and execute under the authority of accounts
-- An account is fully specified by its address + nonce + assets
-- Address contains 2 or 3 fields: 1 byte version, 20 byte public key hash (RIPEMD160(SHA256(input))), optional name (variable length, max 128 bytes)
-- Two types of accounts: standard accounts are owned by one or more private keys; contract accounts are materialized when a smart-contract is instantiated (specified by the optional name field above)
-- Nonce counts number of times an account has authorized a transaction. Starts at 0, valid authorization must include the _next_ nonce value.
-- Assets are a map of all asset types -- STX, any on-chain assets specified by a Clarity contract (for example NFTs) -- to quantities owned by that account.
-- Accounts need not be explicit "created" or registered; all accounts implicitly exist and are instantiated on first-use.
-- Further reading: [Accounts](/understand-stacks/accounts)
+Next, start bitcoind with the following configuration:
 
-## Transactions
+```toml
+server=1
+rpcuser=your-bitcoind-username
+rpcpassword=your-bitcoind-password
+testnet=1
+txindex=0
+listen=1
+rpcserialversion=0
+maxorphantx=1
+banscore=1
 
-- Transaction types: coinbase, token-transfer, contract-deploy, contract-call, poison-microblock.
-- Only standard accounts (not contracts) can pay transaction fees.
-- Transaction execution is governed by 3 accounts (may or may not be distinct)
-  1. _originating account_ is the account that creates, _authorizes_ and sends the transaction
-  2. _paying account_ is the account that is billed by the leader for the cost of validating and executing the transaction
-  3. _sending account_ is the account that identifies who is currently executing the transaction: this can change as a transaction executes via the `as-contract` Clarity function
-- Transactions can be batched or streamed into blocks. The behavior can be controlled by the anchor mode of a transaction. With streaming ([microblocks](/understand-stacks/microblocks)), a faster confirmation time is possible.
-- Two types of authorizations: standard authorization is where originating account is the same as paying account. _Sponsored_ authorization is where originating account and paying account are distinct. For instance, developers or service providers could pay for users to call their smart-contracts.
-- For sponsored authorization, first a user signs with the originating account and then a sponsor signs with the paying account.
-- Mempool limit for concurrent pending transactions is 25 per account
-- Pending mempool transactions will be garbage-collected [256 blocks after receipt](https://github.com/blockstack/stacks-blockchain/blob/master/src/core/mempool.rs#L62). With 10 minutes target block time, this would equal ~42 hours
-- [Learn more about transaction encoding in SIP-005](https://github.com/stacksgov/sips/blob/main/sips/sip-005/sip-005-blocks-and-transactions.md#transaction-encoding)
-- [Transaction signing and verification are described in SIP-005](https://github.com/stacksgov/sips/blob/main/sips/sip-005/sip-005-blocks-and-transactions.md#transaction-signing-and-verifying)
-- All transactions impacting account balance are atomic, a transfer operation can not increment one account’s balance without decrementing another’s. However, transactions that perform multiple account actions (for example, transferring from multiple accounts) may partially complete.
-- Transactions can include a memo string (max 34 bytes)
+[test]
+bind=0.0.0.0:18333
+rpcbind=0.0.0.0:18332
+rpcport=18332
+```
+
+Finally, start bitcoind as follows:
+
+```bash
+bitcoind -conf=path/to/bitcoin.conf
+```
+
+It may take a few hours for the node to synchronize with the Bitcoin testnet.
+
+## Running a miner
+
+First, a keychain needs to be generated. With this keychain, we'll get some testnet BTC from a faucet, and then use that BTC to start mining.
+
+To get a keychain, the simplest way is to use the `stacks-cli`. We'll use the `make_keychain` command, and pass `-t` to indicate that we want a testnet keychain.
+
+```bash
+npx @stacks/cli make_keychain -t 2>/dev/null | json_pp > keychain.txt
+```
+
+After this runs, you should see some JSON in the new `keychain.txt` file that looks like this:
+
+```json
+{
+  "mnemonic": "exhaust spin topic distance hole december impulse gate century absent breeze ostrich armed clerk oak peace want scrap auction sniff cradle siren blur blur",
+  "keyInfo": {
+    "privateKey": "2033269b55026ff2eddaf06d2e56938f7fd8e9d697af8fe0f857bb5962894d5801",
+    "address": "STTX57EGWW058FZ6WG3WS2YRBQ8HDFGBKEFBNXTF",
+    "btcAddress": "mkRYR7KkPB1wjxNjVz3HByqAvVz8c4B6ND",
+    "index": 0
+  }
+}
+```
+
+**Don't lose this information** - we'll need to use the `privateKey` field later on.
+
+The above BTC address will then need to be imported into the BTC testnet network.
+
+```bash
+bitcoin-cli -rpcport=18332 -rpcuser=your-user -rpcpassword=your-password importaddress <btcAddress from JSON above>
+```
+
+Once imported, we need to get some testnet BTC to that address. Grab the `btcAddress` field, and paste it into [this Bitcoin testnet faucet](https://tbtc.bitaps.com/). You'll be sent `0.01` testnet BTC to that address.
+
+Now, we need to configure our node to use this Bitcoin keychain. Clone the [stacks-blockchain repository](https://github.com/blockstack/stacks-blockchain) to your local machine if you haven't already. In the `stacks-blockchain` folder, modify the file at [`testnet/stacks-node/conf/testnet-miner-conf.toml`](https://github.com/blockstack/stacks-blockchain/blob/master/testnet/stacks-node/conf/testnet-miner-conf.toml).
+
+Update the following properties:
+
+```toml
+[node]
+...
+seed = "replace-with-your-private-key"
+local_peer_seed = "replace-with-your-private-key"
+...
+
+[burnchain]
+...
+# To mine on Xenon, you need to run bitcoind locally
+# Details can be found in above section, 'Running bitcoind locally'
+peer_host = "127.0.0.1"
+username = "<USERNAME>"
+password = "<PASSWORD>"
+...
+```
+
+Now, grab your `privateKey` from earlier, when you ran the `make_keychain` command. Replace the `seed` field with your private key. Save and close this configuration file.
+
+To run your miner, run this in the command line:
+
+```bash
+stacks-node start --config=./testnet/stacks-node/conf/testnet-miner-conf.toml
+```
+
+Your node should start. It will take some time to sync, and then your miner will be running.
+
+### Creating an optimized binary
+
+The steps above are great for trying to run a node temporarily. If you want to host a node on a server somewhere, you might want to generate an optimized binary. To do so, use the same configuration as above, but run:
+
+```bash
+cd testnet/stacks-node
+cargo build --release --bin stacks-node
+```
+
+The above code will compile an optimized binary. To use it, run:
+
+```bash
+cd ../..
+./target/release/stacks-node start --config=./testnet/conf/testnet-follower-conf.toml
+```
+
+For a full reference of subcommands and configuration options used by `stacks-node`, please see this page.
+
+[@page-reference | inline] | /references/stacks-node-configuration
+
+To read more about the technical details of mining on the Stacks 2.0 network, have a look at the minig guide:
+
+[@page-reference | inline] | /understand-stacks/mining
+
+### Enable debug logging
+
+In case you are running into issues or would like to see verbose logging, you can run your node with debug logging enabled. In the command line, run:
+
+```bash
+STACKS_LOG_DEBUG=1 stacks-node xenon
+```
+
+## Running a miner in Windows
+
+### Prerequisites
+
+Make sure you've followed the [Running the testnet node on Windows](/understand-stacks/running-testnet-node#running-the-testnet-node-on-windows) tutorial before starting this tutorial.
+
+### Generate keychain and get testnet tokens in Windows
+
+To setup the miner, first, we need to generate a keychain. With this keychain, we'll get some testnet BTC from a faucet, and then use that BTC to start mining.
+
+To get a keychain, the simplest way is to use the `stacks-cli`. We'll use the `stx make-keychain` command, and pass `-t` to indicate that we want a testnet keychain.
+
+Generate a keychain:
+
+```bash
+npm install --global @stacks/cli
+stx make_keychain -t > cli_keychain.json
+type cli_keychain.json
+```
+
+After this runs, you'll probably see some installation logs, and at the end you should see some JSON that looks like this:
+
+```json
+{
+  "mnemonic": "exhaust spin topic distance hole december impulse gate century absent breeze ostrich armed clerk oak peace want scrap auction sniff cradle siren blur blur",
+  "keyInfo": {
+    "privateKey": "2033269b55026ff2eddaf06d2e56938f7fd8e9d697af8fe0f857bb5962894d5801",
+    "address": "STTX57EGWW058FZ6WG3WS2YRBQ8HDFGBKEFBNXTF",
+    "btcAddress": "mkRYR7KkPB1wjxNjVz3HByqAvVz8c4B6ND",
+    "index": 0
+  }
+}
+```
+
+-> Check out the [Stacks CLI reference](https://docs.hiro.so/references/stacks-cli) for more details
+
+Request BTC from faucet:
+
+We need to get some testnet BTC to that address. Grab the `btcAddress` field, and paste it into [this Bitcoin testnet faucet](https://tbtc.bitaps.com/). You'll be sent 0.01 testnet BTC to that address.
+
+### Update configuration file
+
+Now, we need to configure our node to use this Bitcoin keychain. Clone the [stacks-blockchain repository](https://github.com/blockstack/stacks-blockchain) to your local machine if you haven't already. In the `stacks-blockchain` folder, modify the file at [`testnet/stacks-node/conf/testnet-miner-conf.toml`](https://github.com/blockstack/stacks-blockchain/blob/master/testnet/stacks-node/conf/testnet-miner-conf.toml).
+
+Update the following properties:
+
+```toml
+[node]
+...
+seed = "replace-with-your-private-key"
+local_peer_seed = "replace-with-your-private-key"
+...
+
+[burnchain]
+...
+# To mine on Xenon, you need to run bitcoind locally
+# Details can be found in above section, 'Running bitcoind locally'
+peer_host = "127.0.0.1"
+username = "<USERNAME>"
+password = "<PASSWORD>"
+...
+```
+
+Now, grab your `privateKey` from earlier, when you ran the `stx make_keychain` command. Replace the seed field with your private key. Save and close this configuration file.
+
+### Run the miner
+
+To start your miner, run this in the command line:
+
+```bash
+stacks-node start --config=testnet/stacks-node/conf/testnet-miner-conf.toml
+```
+
+-> **Note** : While starting the node for the first time, windows defender might pop up with a message to allow access. If so, allow access to run the node. ![Windows Defender](/images/windows-defender.png)
+
+Your node should start. It will take some time to sync, and then your miner will be running.
+
+### Enable debug logging in Windows
+
+In case you are running into issues or would like to see verbose logging, you can run your node with debug logging enabled. In the command line, run:
+
+```bash
+set RUST_BACKTRACE=full;
+set STACKS_LOG_DEBUG=1;
+stacks-node start --config=testnet-miner-conf.toml
+```
+
+## Optional: Running with Docker
+
+Alternatively, you can run the testnet node with Docker.
+
+-> Ensure you have [Docker](https://docs.docker.com/get-docker/) installed on your machine.
+
+### Generate keychain and get testnet tokens
+
+Generate a keychain:
+
+```bash
+docker run -i node:14-alpine npx @stacks/cli make_keychain -t 2>/dev/null
+```
+
+We need to get some testnet BTC to that address. Grab the `btcAddress` field, and paste it into [this Bitcoin testnet faucet](https://tbtc.bitaps.com/). You'll be sent 0.01 testnet BTC to that address.
+
+### Update config file
+
+Now, we need to configure our node to use this Bitcoin keychain. Clone the [stacks-blockchain repository](https://github.com/blockstack/stacks-blockchain) to your local machine if you haven't already. In the `stacks-blockchain` folder, modify the file at [`testnet/stacks-node/conf/testnet-miner-conf.toml`](https://github.com/blockstack/stacks-blockchain/blob/master/testnet/stacks-node/conf/testnet-miner-conf.toml).
+
+Update the following properties:
+
+```toml
+[node]
+...
+seed = "replace-with-your-private-key"
+local_peer_seed = "replace-with-your-private-key"
+...
+
+[burnchain]
+...
+# To mine on Xenon, you need to run bitcoind locally
+# Details can be found in above section, 'Running bitcoind locally'
+peer_host = "127.0.0.1"
+username = "<USERNAME>"
+password = "<PASSWORD>"
+...
+```
+
+Now, grab your `privateKey` from earlier, when you ran the `stx make_keychain` command. Replace the seed field with your private key. Save and close this configuration file.
+
+### Start the miner
+
+-> The ENV VARS `RUST_BACKTRACE` and `STACKS_LOG_DEBUG` are optional. If removed, debug logs will be disabled
+
+```bash
+docker run -d \
+  --name stacks_miner \
+  --rm \
+  --network host \
+  -e RUST_BACKTRACE="full" \
+  -e STACKS_LOG_DEBUG="1" \
+  -v "$(pwd))/testnet/stacks-node/conf/testnet-miner-conf.toml:/src/stacks-node/testnet-miner-conf.toml" \
+  -p 20443:20443 \
+  -p 20444:20444 \
+  blockstack/stacks-blockchain:latest \
+/bin/stacks-node start --config /src/stacks-node/testnet-miner-conf.toml
+```
+
+You can review the node logs with this command:
+
+```bash
+docker logs -f stacks_miner
+```
+
+## Optional: Running in Kubernetes with Helm
+
+In addition, you're also able to run a testnet node in a Kubernetes cluster using the [stacks-blockchain Helm chart](https://github.com/blockstack/stacks-blockchain/tree/master/deployment/helm/stacks-blockchain).
+
+Ensure you have the following prerequisites installed on your machine:
+
+- [Docker](https://docs.docker.com/get-docker/)
+- [minikube](https://minikube.sigs.k8s.io/docs/start/) (Only needed if standing up a local Kubernetes cluster)
+- [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
+- [helm](https://helm.sh/docs/intro/install/)
+
+### Generate keychain and get some testnet tokens
+
+Generate a keychain:
+
+```bash
+docker run -i node:14-alpine npx @stacks/cli make_keychain -t 2>/dev/null
+```
+
+We need to get some testnet BTC to that address. Grab the `btcAddress` field, and paste it into [this Bitcoin testnet faucet](https://tbtc.bitaps.com/). You'll be sent 0.01 testnet BTC to that address.
+
+### Install the chart and run the miner
+
+To install the chart with the release name `my-release` and run the node as a miner:
+
+```bash
+minikube start # Only run this if standing up a local Kubernetes cluster
+helm repo add blockstack https://charts.blockstack.xyz
+helm install my-release blockstack/stacks-blockchain \
+  --set config.node.miner=true \
+  --set config.node.seed="replace-with-your-privateKey-from-generate-keychain-step"
+```
+
+You can review the node logs with this command:
+
+```bash
+kubectl logs -l app.kubernetes.io/name=stacks-blockchain
+```
+
+For more information on the Helm chart and configuration options, please refer to the [chart's homepage](https://github.com/blockstack/stacks-blockchain/tree/master/deployment/helm/stacks-blockchain).
