@@ -1,141 +1,57 @@
 ---
-title: Running a testnet node
-description: Set up and run a testnet node with Docker
+title: Proof of Transfer
+description: Understand the proof-of-transfer consensus mechanism
 icon: TestnetIcon
-duration: 15 minutes
-experience: beginners
-tags:
-  - tutorial
 images:
-  large: /images/cli.svg
-  sm: /images/cli.svg
+  large: /images/stacking.svg
+  sm: /images/stacking.svg
 ---
 
-## Introduction
+## Overview
 
-This procedure demonstrates how to run a local testnet node using Docker images.
+Consensus algorithms for blockchains require compute or financial resources to secure the blockchain. The general practice of decentralized consensus is to make it practically infeasible for any single malicious actor to have enough computing power or ownership stake to attack the network.
 
--> This procedure focuses on Unix-like operating systems (Linux and MacOS). This procedure has not been tested on Windows.
+Popular consensus mechanisms in modern blockchains include proof-of-work, in which nodes dedicate computing resources, and proof-of-stake, in which nodes dedicate financial resources to secure the network.
 
-## Prerequisites
+Proof-of-burn is a novel consensus mechanism where miners compete by ‘burning’ (destroying) a proof-of-work cryptocurrency as a proxy for computing resources.
 
-Running a node has no specialized hardware requirements. Users have been successful in running nodes on Raspberry Pi boards and other system-on-chip architectures. In order to complete this procedure, you must have the following software installed on the node host machine:
+Proof-of-transfer (PoX) is an extension of the proof-of-burn mechanism. PoX uses the proof-of-work cryptocurrency of an established blockchain to secure a new blockchain. However, unlike proof-of-burn, rather than burning the cryptocurrency, miners transfer the committed cryptocurrency to some other participants in the network.
 
-- [Docker](https://docs.docker.com/get-docker/)
-- [curl](https://curl.se/download.html)
-- [jq](https://stedolan.github.io/jq/download/)
+![PoX mechanism](/images/pox-mechanism.png)
 
-### Firewall configuration
+This allows network participants to secure the PoX cryptocurrency network and earn a reward in the base cryptocurrency. Thus, proof-of-transfer blockchains are anchored on their chosen proof-of-work chain. Stacks uses [Bitcoin](#why-bitcoin) as its anchor chain.
 
-In order for the API node services to work correctly, you must configure any network firewall rules to allow traffic on the ports discussed in this section. The details of network and firewall configuration are highly specific to your machine and network, so a detailed example isn't provided.
+![PoX participants](/images/pox-participants.png)
 
-The following ports must open on the host machine:
+## Why Bitcoin?
 
-Ingress:
+There are a number of reasons that Stacks chose Bitcoin as the blockchain to power consensus. It's the oldest blockchain protocol, having launched in 2009, and has become a recognized asset outside of the cryptocurrency community. BTC has held the highest market capitalization of any cryptocurrency for the past decade.
 
-- stacks-blockchain (open to `0.0.0.0/0`):
-  - `20443 TCP`
-  - `20444 TCP`
+Bitcoin champions simplicity and stability, and has stood the test of time. Influencing or attacking the network is infeasible or impractical for any potential hackers. It's one of the only cryptocurrencies to capture public attention. Bitcoin is a household name, and is recognized as an asset by governments, large corporations, and legacy banking institutions. Lastly, Bitcoin is largely considered a reliable store of value, and provides extensive infrastructure to support the proof-of-transfer consensus mechanism.
 
-Egress:
+SIP-001 provides a full [list of reasons why Bitcoin was chosen to secure Stacks](https://github.com/stacksgov/sips/blob/main/sips/sip-001/sip-001-burn-election.md).
 
-- `18332`
-- `18333`
-- `20443-20444`
+![btc-stacks](/images/pox-why-bitcoin.png)
 
-These egress ports are for syncing [`stacks-blockchain`][] and Bitcoin headers. If they're not open, the sync will fail.
+## Blocks and microblocks
 
-## Step 1: initial setup
+The Stacks blockchain allows for increased transaction throughput using a mechanism called microblocks. Bitcoin and Stacks progress in lockstep, and their blocks are confirmed simultaneously. On Stacks, this is referred to as an ‘anchor block’. An entire block of Stacks transactions corresponds to a single Bitcoin transaction. This significantly improves cost/byte ratio for processing Stacks transactions. Because of simultaneous block production, Bitcoin acts as a rate-limiter for creating Stacks blocks, thereby preventing denial-of-service attacks on its peer network.
 
-In order to run the testnet node, you must download the Docker images and create a directory structure to hold the persistent data from the services. Download and configure the Docker images with the following commands:
+However, in between Stacks anchor blocks settling on the Bitcoin blockchain, there are also a varying number of microblocks that allow rapid settlement of Stacks transactions with a high degree of confidence. This allows Stacks transaction throughput to scale independently of Bitcoin, while still periodically establishing finality with the Bitcoin chain. The Stacks blockchain adopts a block streaming model whereby each leader can adaptively select and package transactions into their block as they arrive in the mempool. Therefore when an anchor block is confirmed, all of the transactions in the parent microblock stream are packaged and processed. This is an unprecedented method for achieving scalability without creating a totally separate protocol from Bitcoin.
 
-```sh
-docker pull blockstack/stacks-blockchain
-```
+![stx-microblock](/images/stx-microblocks.png)
 
-Create a directory structure for the service data with the following command:
+## Unlocking Bitcoin capital
 
-```sh
-mkdir -p ./stacks-node/persistent-data/stacks-blockchain/testnet && cd stacks-node
-```
+Stacks also unlocks the hundreds of billions in capital in Bitcoin, and gives Bitcoiners new opportunities to use and earn BTC. Stacks is a accompaniment to the Bitcoin ecosystem, and the two networks working in tandem enables totally novel ways of using BTC. The Stacks ecosystem makes interactive cryptocurrency applications available to Bitcoin holders. Additionally, By stacking STX tokens and participating in the PoX consensus mechanism, users have the opportunity to earn BTC while securing the Stacks chain.
 
-## Step 2: running Stacks blockchain
+![Unlocking Bitcoin](/images/pox-unlocking-btc.png)
 
-Start the [`stacks-blockchain`][] container with the following command:
+## Clarity and the Bitcoin state
 
-```sh
-docker run -d --rm \
-  --name stacks-blockchain \
-  -v $(pwd)/persistent-data/stacks-blockchain/testnet:/root/stacks-node/data \
-  -p 20443:20443 \
-  -p 20444:20444 \
-  blockstack/stacks-blockchain \
-/bin/stacks-node xenon
-```
+Clarity smart contracts also have unique visibility into the state of the Bitcoin blockchain. This means that contract logic in a Clarity file has the ability to trigger when specific Bitcoin transactions are confirmed. Clarity smart contracts have a built in Simple Payment Verification (SPV) proofs for Bitcoin that make interacting with Bitcoin’s state much simpler for developers. Additionally, Clarity contracts can fork with the original Bitcoin chain. Therefore, in an edge case where Bitcoin forks, developers wouldn’t have to worry about adjusting the deployment of their smart contracts.
 
-You can verify the running [`stacks-blockchain`][] container with the command:
+## See also
 
-```sh
-docker ps --filter name=stacks-blockchain
-```
-
-## Step 3: verifying the services
-
--> The initial burnchain header sync can take several minutes, until this is done the following commands will not work
-
-To verify the [`stacks-blockchain`][] burnchain header sync progress:
-
-```sh
-docker logs stacks-blockchain
-```
-
-The output should be similar to the following:
-
-```
-INFO [1626290705.886954] [src/burnchains/bitcoin/spv.rs:926] [main] Syncing Bitcoin headers: 1.2% (8000 out of 2034380)
-INFO [1626290748.103291] [src/burnchains/bitcoin/spv.rs:926] [main] Syncing Bitcoin headers: 1.4% (10000 out of 2034380)
-INFO [1626290776.956535] [src/burnchains/bitcoin/spv.rs:926] [main] Syncing Bitcoin headers: 1.7% (12000 out of 2034380)
-```
-
-To verify the [`stacks-blockchain`][] tip height is progressing use the following command:
-
-```sh
-curl -sL localhost:20443/v2/info | jq
-```
-
-If the instance is running you should recieve terminal output similar to the following:
-
-```json
-{
-  "peer_version": 4207599105,
-  "pox_consensus": "12f7fa85e5099755a00b7eaecded1aa27af61748",
-  "burn_block_height": 2034380,
-  "stable_pox_consensus": "5cc4e0403ff6a1a4bd17dae9600c7c13d0b10bdf",
-  "stable_burn_block_height": 2034373,
-  "server_version": "stacks-node 2.0.11.2.0-rc1 (develop:7b6d3ee+, release build, linux [x86_64])",
-  "network_id": 2147483648,
-  "parent_network_id": 118034699,
-  "stacks_tip_height": 509,
-  "stacks_tip": "e0ee952e9891709d196080ca638ad07e6146d4c362e6afe4bb46f42d5fe584e8",
-  "stacks_tip_consensus_hash": "12f7fa85e5099755a00b7eaecded1aa27af61748",
-  "genesis_chainstate_hash": "74237aa39aa50a83de11a4f53e9d3bb7d43461d1de9873f402e5453ae60bc59b",
-  "unanchored_tip": "32bc86590f11504f17904ee7f5cb05bcf71a68a35f0bb3bc2d31aca726090842",
-  "unanchored_seq": 0,
-  "exit_at_block_height": null
-}
-```
-
-## Stopping the testnet node
-
-Use the following commands to stop the local testnet node:
-
-```sh
-docker stop stacks-blockchain
-```
-
-## Additional reading
-
-- [Running an API instance with Docker][]
-
-  [Running an API instance with Docker]: https://docs.hiro.so/get-started/running-api-node
-  [`stacks-blockchain`]: https://github.com/blockstack/stacks-blockchain
+- [Read the full PoX whitepaper](https://community.stacks.org/pox)
+- [Watch CEO Muneeb Ali and Evangelist Joe Bender give an overview of Stack's breakthrough PoX mining mechanism](https://www.youtube.com/watch?v=NY_eUrIcWOY)
