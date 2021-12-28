@@ -1,211 +1,352 @@
 ---
-title: Accounts 123 345345
-description: Guide to Stacks 2.0 accounts
-icon: TestnetIcon
+title: Mine mainnet Stacks tokens
+description: Set up and run a miner on the Stacks 2.0 mainnet
+icon: MainnetIcon
+experience: beginners
+duration: 10 minutes
+tags:
+  - tutorial
 images:
-  large: /images/pages/testnet.svg
-  sm: /images/pages/testnet-sm.svg
+  large: /images/pages/start-mining.svg
+  sm: /images/pages/start-mining-sm.svg
 ---
 
 ## Introduction
 
-Stacks 2.0 accounts are entities that own assets, like Stacks (STX) tokens. An account has an address, private key, nonce, and one or more asset balances.
+Make sure you've followed the [Running mainnet node](/understand-stacks/running-mainnet-node) procedure. Once completed it's only a few more steps to run a proof-of-burn miner on the mainnet.
 
-If you want to jump right in to generate and query a new account, try this tutorial:
+If you're interested in mining on the testnet, you can find instructions on how to do that here:
 
--> The public-key signature system used for Stacks 2.0 accounts is [Ed25519](https://ed25519.cr.yp.to/).
+[@page-reference | inline] | /start-mining/testnet
 
-Assets cannot leave an account without an action from the account owner. All changes to assets (and the balances of the account) require a corresponding transaction.
+If you want to learn more about the technical details of mining, please review the mining guide:
 
--> The transaction type doesn't need to be a token transfer - contract deploy and contract call transactions can change the balances of an account
+[@page-reference | inline] | /understand-stacks/mining
 
-## Creation
+## Running bitcoind locally
 
-An account is generated from a 24-word mnemonic phrase. This is often referred to as the **seed phrase**. The seed phrase provides access to Stacks 2.0 accounts.
+To participate as a miner on mainnet, you must have access to a mainnet bitcoin node. One way to accomplish this is to run bitcoind locally. [Ensure your computer meets the minimum hardware requirements before continuing.](https://bitcoin.org/en/bitcoin-core/features/requirements)
 
-!> If the seed phrase is lost, access to the associated account cannot be restored. No person or organization, including Blockstack, can recover a lost seed phrase.
+First, download the bitcoind software for your platform from https://bitcoin.org/en/download.
 
-The easiest way to generate a new Stacks 2.0 account is to use the [Stacks CLI](https://github.com/blockstack/stacks.js/tree/master/packages/cli):
+Next, start bitcoind with the following configuration:
 
-```bash
-# install CLI globally
-npm install --global @stacks/cli
-
-# generate a new account and store details in a new file
-# '-t' option makes this a testnet account
-stx make_keychain -t > cli_keychain.json
+```toml
+server=1
+rpcuser=your-bitcoind-username
+rpcpassword=your-bitcoind-password
+txindex=0
+listen=1
+rpcserialversion=0
+maxorphantx=1
+banscore=1
+bind=0.0.0.0:8333
+rpcbind=0.0.0.0:8332
+rpcport=8332
 ```
 
-`make_keychain` creates the following file:
+Finally, start bitcoind as follows:
 
-```js
+```bash
+bitcoind -conf=path/to/bitcoin.conf
+```
+
+It may take a few days for the node to synchronize with the Bitcoin mainnet.
+
+## Running a miner
+
+First, a keychain needs to be generated. With this keychain, we'll purchase some BTC from a crytpocurrency exchange, and then use that BTC to start mining.
+
+To get a keychain, the simplest way is to use the `stacks-cli`. We'll use the `make_keychain` command.
+
+```bash
+npx @stacks/cli make_keychain 2>/dev/null | json_pp > keychain.txt
+```
+
+After this runs, you should see some JSON in the new `keychain.txt` file that looks like this:
+
+```json
 {
-  "mnemonic": "aaa bbb ccc ddd ...",
+  "mnemonic": "exhaust spin topic distance hole december impulse gate century absent breeze ostrich armed clerk oak peace want scrap auction sniff cradle siren blur blur",
   "keyInfo": {
-    "address": "STJRM2AMVF90ER6G3RW1QTF85E3HZH37006D5ER1",
-    "privateKey": "5a3f1f15245bb3fb...",
-    "index": 0,
-    "btcAddress": "biwSd6KTEvJcyX2R8oyfgj5REuLzczMYC1"
+    "privateKey": "2033269b55026ff2eddaf06d2e56938f7fd8e9d697af8fe0f857bb5962894d5801",
+    "address": "STTX57EGWW058FZ6WG3WS2YRBQ8HDFGBKEFBNXTF",
+    "btcAddress": "mkRYR7KkPB1wjxNjVz3HByqAvVz8c4B6ND",
+    "index": 0
+  }
+}
+```
+
+**Don't lose this information** - we'll need to use the `privateKey` field later on.
+
+The above BTC address will then need to be imported into the BTC network.
+
+```bash
+bitcoin-cli -rpcport=8332 -rpcuser=your-user -rpcpassword=your-password importaddress <btcAddress from JSON above>
+```
+
+Once imported, we need to get some BTC to that address. You should be able to transfer BTC to this address using a crytpocurrency exchange such as [Coinbase](https://www.coinbase.com), [Binance](https://www.binance.com), or [Kraken](https://www.kraken.com).
+
+Now, we need to configure our node to use this Bitcoin keychain. Clone the [stacks-blockchain repository](https://github.com/blockstack/stacks-blockchain) to your local machine if you haven't already. In the `stacks-blockchain` folder, modify the file at [`testnet/stacks-node/conf/mainnet-miner-conf.toml`](https://github.com/blockstack/stacks-blockchain/blob/master/testnet/stacks-node/conf/mainnet-miner-conf.toml).
+
+Update the following properties:
+
+```toml
+[node]
+...
+# Enter your private key here
+seed = "replace-with-your-private-key"
+local_peer_seed = "replace-with-your-private-key"
+...
+
+[burnchain]
+...
+# To mine on mainnet, you need to run bitcoind locally
+# Details can be found in above section, 'Running bitcoind locally'
+peer_host = "127.0.0.1"
+username = "<USERNAME>"
+password = "<PASSWORD>"
+...
+```
+
+Now, grab your `privateKey` from earlier, when you ran the `make_keychain` command. Replace the `seed` field with your private key. Save and close this configuration file.
+
+To run your miner, run this in the command line:
+
+```bash
+stacks-node start --config=./testnet/stacks-node/conf/mainnet-miner-conf.toml
+```
+
+Your node should start. It will take some time to sync, and then your miner will be running.
+
+### Creating an optimized binary
+
+The steps above are great for trying to run a node temporarily. If you want to host a node on a server somewhere, you might want to generate an optimized binary. To do so, use the same configuration as above, but run:
+
+```bash
+cd testnet/stacks-node
+cargo build --release --bin stacks-node
+```
+
+The above code will compile an optimized binary. To use it, run:
+
+```bash
+cd ../..
+./target/release/stacks-node start --config=./mainnet-miner-conf.toml
+```
+
+For a full reference of subcommands and configuration options used by `stacks-node`, please see this page.
+
+[@page-reference | inline] | /references/stacks-node-configuration
+
+To read more about the technical details of mining on the Stacks 2.0 network, have a look at the minig guide:
+
+[@page-reference | inline] | /understand-stacks/mining
+
+### Enable debug logging
+
+In case you are running into issues or would like to see verbose logging, you can run your node with debug logging enabled. In the command line, run:
+
+```bash
+STACKS_LOG_DEBUG=1 stacks-node mainnet
+```
+
+## Running a miner in Windows
+
+### Prerequisites
+
+Make sure you've followed the [Running the mainnet node on Windows](/understand-stacks/running-mainnet-node#running-the-mainnet-node-on-windows) tutorial and [Running itcoind locally](#running-bitcoind-locally) section above before starting this tutorial.
+
+### Generate keychain and get mainnet tokens in Windows
+
+To setup the miner, first we need to generate a keychain. With this keychain, we'll purchase some BTC from a crytpocurrency exchange, and then use that BTC to start mining.
+
+To get a keychain, the simplest way is to use the `stacks-cli`. We'll use the `stx make-keychain` command.
+
+Generate a keychain:
+
+```bash
+npm install --global @stacks/cli
+stx make_keychain > cli_keychain.json
+type cli_keychain.json
+```
+
+After this runs, you'll probably see some installation logs, and at the end you should see some JSON that looks like this:
+
+```json
+{
+  "mnemonic": "exhaust spin topic distance hole december impulse gate century absent breeze ostrich armed clerk oak peace want scrap auction sniff cradle siren blur blur",
+  "keyInfo": {
+    "privateKey": "2033269b55026ff2eddaf06d2e56938f7fd8e9d697af8fe0f857bb5962894d5801",
+    "address": "STTX57EGWW058FZ6WG3WS2YRBQ8HDFGBKEFBNXTF",
+    "btcAddress": "mkRYR7KkPB1wjxNjVz3HByqAvVz8c4B6ND",
+    "index": 0
   }
 }
 ```
 
 -> Check out the [Stacks CLI reference](https://docs.hiro.so/references/stacks-cli) for more details
 
-| Field                | Description                                                                                                                                                        |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `mnemonic`           | A 24-word seed phrase used to access the account, generated using [BIP39](https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki) with 256 bits of entropy |
-| `keyInfo.address`    | Stacks address for the account                                                                                                                                     |
-| `keyInfo.privateKey` | Private key for the account. Required for token transfers and often referred to as `senderKey`                                                                     |
-| `keyInfo.index`      | Nonce for the account, starting at 0                                                                                                                               |
-| `keyInfo.btcAddress` | Corresponding BTC address for the account. A construct from the previous blockchain (Stacks 1.0) and currently unused.                                             |
-
--> `btcAddress` was used in the old, Stacks 1.0, blockchain. Stacks 1.0 accounts would pay for occurring transaction fees with the corresponding BTC account. This is **not** the case for Stacks 2.0 accounts anymore and the field is a leftover
-
-Note that a new account automatically exists for each new private key. There is no need to manually instantiate an account on the Stacks 2.0 blockchain.
-
--> Addresses are created by generating the [RIPEMD-160 hash](https://en.wikipedia.org/wiki/RIPEMD#RIPEMD-160_hashes) of the [SHA256](https://en.bitcoinwiki.org/wiki/SHA-256) of the public key. BTC addresses are encoded with [Base58Check](https://en.bitcoin.it/wiki/Base58Check_encoding). For Stacks addresses, [c32check](https://github.com/blockstack/c32check) is used. Deriving an address from a public key can be done without internet access, for instance using the c32check `c32addressDecode` method.
-
-Alternatively to the CLI creation, the [Stacks Transactions JS](https://github.com/blockstack/stacks.js/tree/master/packages/transactions) library can be used:
-
-```js
-import {
-  makeRandomPrivKey,
-  privateKeyToString,
-  getAddressFromPrivateKey,
-  TransactionVersion,
-} from '@stacks/transactions';
-
-const privateKey = makeRandomPrivKey();
-
-// Get public key from private
-const publicKey = getPublicKey(privateKey);
-
-const stacksAddress = getAddressFromPrivateKey(
-  privateKeyToString(privateKey),
-  TransactionVersion.Testnet // remove for Mainnet addresses
-);
-```
-
-A second alternative would be to use [stacks-gen](https://github.com/psq/stacks-gen). This tool will generate all the keys you need in one place, including the values needed for calling the stacking contract, and also a WIF key for use with `bitcoind`.
-
-#### stacks-gen prerequisite
-
-Install [npx](https://github.com/npm/npx) if not already installed. (npx will check whether `<command>` exists in \$PATH, or in the local project binaries, and execute that. If `<command>` is not found, it will be installed prior to execution).
-
-```
-npm install -g npx
-```
-
-#### stacks-gen usage
-
-```
-npx -q stacks-gen sk --testnet
-
-{
-  "phrase": "guide air pet hat friend anchor harvest dog depart matter deny awkward sign almost speak short dragon rare private fame depart elevator snake chef",
-  "private": "0351764dc07ee1ad038ff49c0e020799f0a350dd0769017ea09460e150a6401901",
-  "public": "022d82baea2d041ac281bebafab11571f45db4f163a9e3f8640b1c804a4ac6f662",
-  "stacks": "ST16JQQNQXVNGR8RZ1D52TMH5MFHTXVPHRV6YE19C",
-  "stacking": "{ hashbytes: 0x4d2bdeb7eeeb0c231f0b4a2d5225a3e3aeeed1c6, version: 0x00 }",
-  "btc": "mnYzsxxW271GkmyMnRfiopEkaEpeqLtDy8",
-  "wif": "cMh9kwaCEttgTQYkyMUYQVbdm5ZarZdBHErcq7mXUChXXCo7CFEh"
-}
-```
-
--> The stacking object with hashbytes and a version represents the bitcoin address derived from the Stacks address. Read more about the [bitcoin address format](/understand-stacks/stacking#bitcoin-address).
-
-Full documentation available at [stacks-gen](https://github.com/psq/stacks-gen).
-
-## Querying
-
-### Get Stacks (STX) balance and nonce
-
-STX balance and nonce can be obtained through the [`GET /v2/accounts/<stx_address>`](https://docs.hiro.so/api#operation/get_account_info) endpoint:
+The above BTC address will then need to be imported into the BTC network.
 
 ```bash
-# for mainnet, replace `testnet` with `mainnet`
-curl 'https://stacks-node-api.testnet.stacks.co/v2/accounts/<stx_address>'
+bitcoin-cli -rpcport=8332 -rpcuser=your-user -rpcpassword=your-password importaddress <btcAddress from JSON above>
 ```
 
-Sample response:
+Once imported, we need to get some BTC to that address. You should be able to transfer BTC to this address using a crytpocurrency exchange such as [Coinbase](https://www.coinbase.com), [Binance](https://www.binance.com), or [Kraken](https://www.kraken.com).
 
-```js
-{
-    "balance": "0x0000000000000000002386f26f3f40ec",
-    "nonce": 17
-}
+### Update configuration file
+
+Now, we need to configure our node to use this Bitcoin keychain. Clone the [stacks-blockchain repository](https://github.com/blockstack/stacks-blockchain) to your local machine if you haven't already. In the `stacks-blockchain` folder, modify the file at [`testnet/stacks-node/conf/mainnet-miner-conf.toml`](https://github.com/blockstack/stacks-blockchain/blob/master/testnet/stacks-node/conf/mainnet-miner-conf.toml).
+
+Update the following properties:
+
+```toml
+[node]
+...
+# Enter your private key here
+seed = "replace-with-your-private-key"
+local_peer_seed = "replace-with-your-private-key"
+...
+
+[burnchain]
+...
+# To mine on mainnet, you need to run bitcoind locally
+# Details can be found in above section, 'Running bitcoind locally'
+peer_host = "127.0.0.1"
+username = "<USERNAME>"
+password = "<PASSWORD>"
+...
 ```
 
--> The balance string represents an unsigned 128-bit integer (big-endian) in hex encoding
+Now, grab your `privateKey` from earlier, when you ran the `stx make_keychain` command. Replace the seed field with your private key. Save and close this configuration file.
 
-### Get all token balances
+### Run the miner
 
-All token balances can be obtained through the [`GET /extended/v1/address/<stx_address>/balances`](https://docs.hiro.so/api#operation/get_account_balance) endpoint:
+To start your miner, run this in the command line:
 
 ```bash
-# for mainnet, replace `testnet` with `mainnet`
-curl 'https://stacks-node-api.testnet.stacks.co/extended/v1/address/<stx_address>/balances'
+stacks-node start --config=testnet/stacks-node/conf/mainnet-miner-conf.toml
 ```
 
-Sample response:
+-> **Note** : While starting the node for the first time, windows defender might pop up with a message to allow access. If so, allow access to run the node. ![Windows Defender](/images/windows-defender.png)
 
-```js
-{
-    "stx": {
-        "balance": "0",
-        "total_sent": "0",
-        "total_received": "0"
-    },
-    "fungible_tokens": {},
-    "non_fungible_tokens": {}
-}
-```
+Your node should start. It will take some time to sync, and then your miner will be running.
 
--> Stacks accounts cannot hold bitcoins. The best way to obtain corresponding BTC balances is to derive the BTC address from the Stacks address (using [`c32check`](https://github.com/blockstack/c32check#c32tob58-b58toc32)) and query the Bitcoin network.
+### Enable debug logging in Windows
 
-### Get all asset events
-
-All asset events associated with the account can be obtained through the [`GET /extended/v1/address/<stx_address>/assets`](https://docs.hiro.so/api#operation/get_account_balance) endpoint:
+In case you are running into issues or would like to see verbose logging, you can run your node with debug logging enabled. In the command line, run:
 
 ```bash
-# for mainnet, replace `testnet` with `mainnet`
-curl 'https://stacks-node-api.testnet.stacks.co/extended/v1/address/<stx_address>/assets'
+set RUST_BACKTRACE=full;
+set STACKS_LOG_DEBUG=1;
+stacks-node start --config=mainnet-miner-conf.toml
 ```
 
-Sample response:
+## Optional: Running with Docker
 
-```js
-{
-    "limit": 20,
-    "offset": 0,
-    "total": 0,
-    "results": [
-        {
-            "event_index": 5,
-            "event_type": "non_fungible_token_asset",
-            "asset": {
-                "asset_event_type": "transfer",
-                "asset_id": "ST2W14YX9SFVDB1ZGHSH40CX1YQAP9XKRAYSSVYAG.hello_world::hello-nft",
-                "sender": "SZ2J6ZY48GV1EZ5V2V5RB9MP66SW86PYKKQ9H6DPR",
-                "recipient": "SM2J6ZY48GV1EZ5V2V5RB9MP66SW86PYKKQVX8X0G",
-                "value": {
-                    "hex": "0x0100000000000000000000000000000001",
-                    "repr": "u1"
-                }
-            }
-        },
-        {
-            "event_index": 3,
-            "event_type": "fungible_token_asset",
-            "asset": {
-                "asset_event_type": "mint",
-                "asset_id": "ST2W14YX9SFVDB1ZGHSH40CX1YQAP9XKRAYSSVYAG.hello_world::novel-token-19",
-                "sender": "",
-                "recipient": "SZ2J6ZY48GV1EZ5V2V5RB9MP66SW86PYKKQ9H6DPR",
-                "amount": "12"
-            }
-        }
-    ]
-}
+Alternatively, you can run the mainnet node with Docker.
+
+-> Ensure you have [Docker](https://docs.docker.com/get-docker/) installed on your machine.
+
+### Generate keychain and get tokens
+
+Generate a keychain:
+
+```bash
+docker run -i node:14-alpine npx @stacks/cli make_keychain 2>/dev/null
 ```
+
+We need to get some BTC to that address. You should be able to transfer BTC to this address using a crytpocurrency exchange such as [Coinbase](https://www.coinbase.com), [Binance](https://www.binance.com), or [Kraken](https://www.kraken.com).
+
+### Update configuration file
+
+Now, we need to configure our node to use this Bitcoin keychain. Clone the [stacks-blockchain repository](https://github.com/blockstack/stacks-blockchain) to your local machine if you haven't already. In the `stacks-blockchain` folder, modify the file at [`testnet/stacks-node/conf/mainnet-miner-conf.toml`](https://github.com/blockstack/stacks-blockchain/blob/master/testnet/stacks-node/conf/mainnet-miner-conf.toml).
+
+Update the following properties:
+
+```toml
+[node]
+...
+# Enter your private key here
+seed = "replace-with-your-private-key"
+local_peer_seed = "replace-with-your-private-key"
+...
+
+[burnchain]
+...
+# To mine on mainnet, you need to run bitcoind locally
+# Details can be found in above section, 'Running bitcoind locally'
+peer_host = "127.0.0.1"
+username = "<USERNAME>"
+password = "<PASSWORD>"
+...
+```
+
+Now, grab your `privateKey` from earlier, when you ran the `stx make_keychain` command. Replace the seed field with your private key. Save and close this configuration file.
+
+### Start the miner
+
+-> The ENV VARS `RUST_BACKTRACE` and `STACKS_LOG_DEBUG` are optional. If removed, debug logs will be disabled
+
+```bash
+docker run -d \
+  --name stacks_miner \
+  --rm \
+  --network host \
+  -e RUST_BACKTRACE="full" \
+  -e STACKS_LOG_DEBUG="1" \
+  -v "$(pwd)/testnet/stacks-node/conf/mainnet-miner-conf.toml:/src/stacks-node/mainnet-miner-conf.toml" \
+  -p 20443:20443 \
+  -p 20444:20444 \
+  blockstack/stacks-blockchain:latest \
+/bin/stacks-node start --config /src/stacks-node/mainnet-miner-conf.toml
+```
+
+You can review the node logs with this command:
+
+```bash
+docker logs -f stacks_miner
+```
+
+## Optional: Running in Kubernetes with Helm
+
+In addition, you're also able to run a mainnet node in a Kubernetes cluster using the [stacks-blockchain Helm chart](https://github.com/blockstack/stacks-blockchain/tree/master/deployment/helm/stacks-blockchain).
+
+Ensure you have the following prerequisites installed on your machine:
+
+- [Docker](https://docs.docker.com/get-docker/)
+- [minikube](https://minikube.sigs.k8s.io/docs/start/) (Only needed if standing up a local Kubernetes cluster)
+- [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
+- [helm](https://helm.sh/docs/intro/install/)
+
+### Generate keychain and get some tokens
+
+Generate a keychain:
+
+```bash
+docker run -i node:14-alpine npx @stacks/cli make_keychain 2>/dev/null
+```
+
+We need to get some BTC to that address. You should be able to transfer BTC to this address using a crytpocurrency exchange such as [Coinbase](https://www.coinbase.com), [Binance](https://www.binance.com), or [Kraken](https://www.kraken.com).
+
+### Install the chart and run the miner
+
+To install the chart with the release name `my-release` and run the node as a miner:
+
+```bash
+minikube start # Only run this if standing up a local Kubernetes cluster
+helm repo add blockstack https://charts.blockstack.xyz
+helm install my-release blockstack/stacks-blockchain \
+  --set config.node.miner=true \
+  --set config.node.seed="replace-with-your-privateKey-from-generate-keychain-step" \
+  --set config.burnchain.mode="mainnet"
+```
+
+You can review the node logs with this command:
+
+```bash
+kubectl logs -l app.kubernetes.io/name=stacks-blockchain
+```
+
+For more information on the Helm chart and configuration options, please refer to the [chart's homepage](https://github.com/blockstack/stacks-blockchain/tree/master/deployment/helm/stacks-blockchain).
