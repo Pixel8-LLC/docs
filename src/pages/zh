@@ -1,43 +1,58 @@
 ---
-title: Transactions
-description: Guide to Stacks 2.0 transactions
-icon: TestnetIcon
+title: Clarity overview 34534
+description: Overview and guides for getting started with Clarity
 images:
-  large: /images/transaction-signing.svg
-  sm: /images/transaction-signing.svg
+  large: /images/contract.svg
+  sm: /images/contract.svg
 ---
 
 ## Introduction
 
-Transactions are the fundamental unit of execution in the Stacks blockchain. Each transaction is originated from a [Stacks 2.0 account](/understand-stacks/accounts), and is retained in the Stacks blockchain history for eternity. This guide helps you understand Stacks 2.0 transactions.
+Clarity is a programming language for writing smart contracts on the Stacks 2.0 blockchain. It supports programmatic control over digital assets.
 
-## Lifecycle
+## Smart contracts
 
-Transactions go through phases before being finally confirmed, and available for all, on the Stacks 2.0 network.
+Smart contracts encode and enforce rules for modifying a particular set of data that is shared among people and entities who don't necessarily trust each other. For example, a smart contract can hold funds in escrow until multiple parties agree to release them, create its own ledger and keep track of its own novel tokens (fungible or non-fungible), and even help make supply chains more transparent.
 
-![Transaction lifecycle](/images/tx-lifecycle.png)
+Because smart contracts are programs that exist in a blockchain, anyone can query them, and anyone can submit transactions to execute them. A smart contract execution can result in new transactions being written to the blockchain.
 
-- **Generate**: Transactions are assembled according to the encoding specification.
-- **Validate and sign**: Transactions are validated to confirm they are well-formed. Required signatures are filled in.
-- **Broadcast**: Transactions are sent to a node.
-- **Register**: A miner receives transactions, verifies, and adds them to the ["mempool,"](https://academy.binance.com/en/glossary/mempool) a holding area for all the pending transactions.
-- **Process**: Miners review the mempool and select transactions for the next block to be mined. Depending on the transaction type, different actions can happen during this step. For example, post-conditions could be verified for a token transfer, smart-contract defined tokens could be minted, or an attempt to call an existing smart contract method could be made.
-- **Confirm**: Miners successfully mine blocks with a set of transactions. The transactions inside are successfully propagated to the network.
+Apps can take advantage of smart contracts to manage a global state that is visible to the public. Anyone can audit the blockchain to independently verify that an app's global shared state has been managed correctly according to the smart contract's rules.
 
--> A transaction can have one of three states once it is registered: `pending`, `success`, or `failed`.
+There is a [Clarity Visual Studio Code plugin][] available for syntax assistance and debugging.
 
-## Types
+## Use cases
 
-The Stacks 2.0 supports a set of different transaction types:
+Not every decentralized application requires smart contracts, but Clarity unlocks interesting capabilities for decentralized applications. Examples of use cases include, but are not limited to:
 
-| **Type**          | **Value**           | **Description**                                                                                                                                                                                       |
-| ----------------- | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Coinbase          | `coinbase`          | The first transaction in a new block (an entity holding several transactions). Used to register for block rewards. These are not manually generated and broadcasted like other types of transactions. |
-| Token transfer    | `token_transfer`    | Asset transfer from a sender to a recipient                                                                                                                                                           |
-| Contract deploy   | `smart_contract`    | Contract instantiation                                                                                                                                                                                |
-| Contract call     | `contract_call`     | Contract call for a public, non read-only function                                                                                                                                                    |
-| Poison Microblock | `poison_microblock` | Punish leaders who intentionally equivocate about the microblocks they package                                                                                                                        |
+- Access control (for example pay to access)
+- Non-fungible (for example collectibles) and fungible tokens (for example stablecoins)
+- Business model templates (for example subscriptions)
+- App-specific blockchains
+- Decentralized Autonomous Organizations
 
-A sample of each transaction type can be found in the [Stacks Blockchain API response definition for transactions](https://docs.hiro.so/api#operation/get_transaction_by_id).
+## Language design
 
-~> Read-only contract call calls do **not** require transactions. Read more about it in the [network guide](/understand-stacks/network#read-only-function-calls).
+Clarity differs from most other smart contract languages in two essential ways:
+
+- The language is interpreted and broadcast on the blockchain as is (not compiled)
+- The language is decidable (not Turing complete)
+
+Using an interpreted language ensures that the executed code is human-readable and auditable. A decidable language like Clarity makes it possible to determine precisely which code is executed, for any function.
+
+A Clarity smart contract consists of two parts, a data space and a set of functions. Only the associated smart contract may modify its corresponding data space on the blockchain. Functions may be private and thus callable only from within the smart contract, or public and thus callable from other contracts. Users call smart contracts' public functions by broadcasting a transaction on the blockchain which invokes the public function. Contracts can also call public functions from other smart contracts.
+
+Note some of the key Clarity language rules and limitations.
+
+- The only primitive types are booleans, integers, buffers, and principals.
+- Recursion is illegal and there are no anonymous functions.
+- Looping is only performed via `map`, `filter`, or `fold`.
+- There is support for lists, however, the only variable length lists in the language appear as function inputs; there is no support for list operations like append or join.
+- Variables are immutable.
+
+## Explore more
+
+For language details and references, see the following:
+
+[@page-reference | grid] | /write-smart-contracts/principals, /write-smart-contracts/values, /references/language-overview
+
+[Clarity Visual Studio Code plugin]: https://marketplace.visualstudio.com/items?itemName=HiroSystems.clarity-lsp
