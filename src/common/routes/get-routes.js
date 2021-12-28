@@ -9,8 +9,11 @@
  *
  */
 
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const fm = require('front-matter');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const fs = require('fs-extra');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const path = require('path');
 
 const slugify = string =>
@@ -22,6 +25,7 @@ const slugify = string =>
     .replace(/^-+/, '') // Trim - from start of text
     .replace(/-+$/, ''); // Trim - from end of text
 
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const YAML = require('yaml');
 const yamlFile = fs.readFileSync(path.resolve(__dirname, '../navigation.yaml'), 'utf8');
 const navigation = YAML.parse(yamlFile);
@@ -29,7 +33,6 @@ const navigation = YAML.parse(yamlFile);
 const getFlatMap = navigation => {
   return navigation.sections.flatMap(section =>
     section.pages.flatMap(page => {
-      // console.log('THE PAGE', page.pages);
       if (page.pages) {
         let sectionPages = [];
         if (page.sections) {
@@ -44,22 +47,17 @@ const getFlatMap = navigation => {
             return _page.pages.flatMap(p => `${page.path}${_page.path}${p.path}`);
           } else {
             if (_page.lang) {
-              console.log('LANG', page.path)
-              let returnItems = [];
               _page.lang.map(lang => {
-                console.log('LANG', lang)
                 return `${page.path}${_page.path}/${lang}`;
               });
             } else {
-              console.log('NO LANG')
               return _page.path && `${page.path}${_page.path}`;
             }
           }
         });
-
-        console.log('asdasdasd', pages);
         return [...pages, ...sectionPages];
       } else {
+        // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
         return `${section.title ? '/' + slugify(section.title) : ''}${page.path}`;
       }
     })
