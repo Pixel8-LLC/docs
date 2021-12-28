@@ -7,7 +7,6 @@ sections:
           - path: /overview
           - path: /testnet
           - path: /proof-of-transfer
-            lang: ['es']
           - path: /mining
           - path: /accounts
           - path: /transactions
