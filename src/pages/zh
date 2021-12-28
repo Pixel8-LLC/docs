@@ -1,24 +1,24 @@
 ---
-title: Stacking Contract
-description: See a detailed list of all functions and error codes of the Stacking contract.
+title: FAQs
+description: Find answers related to the Stacks ecosystem.
 ---
 
-export { convertStackingRefToMdx as getStaticProps } from '@common/data/stacking-ref' import { StackingErrorcodeReference, StackingFunctionReference } from '@components/stacking-ref'
+## General Information
 
-## Introduction
+Learn more about the user-owned internet on Bitcoin and the Stacks ecosystem on [stacks.co](https://stacks.co).
 
-Stacking is implemented as a smart contract using Clarity. You can always find the Stacking contract identifier using the Stacks Blockchain API [`v2/pox` endpoint](https://docs.hiro.so/api#operation/get_pox_info).
+## Apps and Smart Contracts
 
-Below is a list of public and read-only functions as well as error codes that can be returned by those methods.
+Developers, get started building apps and contracts on the [developer page at stacks.co](https://www.stacks.co/developers).
 
-## Public functions
+## Stacks Network
 
-<StackingFunctionReference {...props.mdx.publicFunctions} />
+Learn more about the network behind the user-owned internet on Bitcoin in the [Understand Stacks chapter](/understand-stacks/overview) in the docs.
 
-## Read-only functions
+## Stacks Token
 
-<StackingFunctionReference {...props.mdx.readonlyFunctions} />
+Stacks fuel apps and smart contracts on Bitcoin. Learn more at [stackstoken.com](https://stackstoken.com/faq).
 
-## Error codes
+## Stacks Wallet
 
-<StackingErrorcodeReference {...props.mdx.errorCodes} />
+Download and find resources about the Stacks Wallet by Hiro at [hiro.so](https://www.hiro.so/wallet).
