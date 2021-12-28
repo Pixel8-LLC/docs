@@ -3,7 +3,6 @@ export interface State {
   activeSlug: string;
   slugInView?: string;
   setState: (value: any) => void;
-  locale: string;
   routes: any;
   searchModal: 'open' | 'closed';
 }

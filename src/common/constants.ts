@@ -7,4 +7,4 @@ export const THEME_STORAGE_KEY = 'theme';
 
 export const STATUS_CHECKER_URL = 'https://status.test-blockstack.com';
 
-export const SUPPORTED_LANGUAGES = ['en', 'fr', 'ja', 'es'];
+export const SUPPORTED_LANGUAGES = ['en', 'es'];
