@@ -1,147 +1,70 @@
 ---
-title: Network
-description: Guide to the Stacks 2.0 network
+title: Overview
+description: Learn more about the Stacks 2.0 blockchain
 icon: TestnetIcon
 images:
-  large: /images/pages/testnet.svg
-  sm: /images/pages/testnet-sm.svg
+  large: /images/nodes.svg
+  sm: /images/nodes.svg
 ---
 
-## Tokens
+## Introduction
 
-Stacks (STX) tokens are the native tokens on the Stacks 2.0 blockchain. The smallest fraction is one micro-STX. 1,000,000 micro-STX make one Stacks (STX).
+Stacks 2.0 is a layer-1 blockchain that connects to Bitcoin and brings smart contracts and decentralized apps to it. Smart contracts and apps developed on the Stacks platform are natively integrated with the security, stability, and economic power of Bitcoin.
 
-STX amounts should be stored as integers (8 bytes long), and represent the amount of micro-STX. For display purposes, micro-STX are divided by 1,000,000 (decimal precision of 6).
+## Capabilities
 
-## Fees
+Read more about the features provided by the Stacks 2.0 blockchain.
 
-Fees are used to incentivize miners to confirm transactions on the Stacks 2.0 blockchain. The fee is calculated based on the estimate fee rate and the size of the raw transaction in bytes. The fee rate is a market determined variable. For the [testnet](/understand-stacks/testnet), it is set to 1 micro-STX.
+-> Check out the [technical specifications](/understand-stacks/technical-specs) for a brief overview
 
-Fee estimates can obtained through the [`GET /v2/fees/transfer`](https://docs.hiro.so/api#operation/get_fee_transfer) endpoint:
+A detailed [comparison of the Stacks blockchain to other blockchain technologies][] is available at the Stacks Foundation blog.
 
-```bash
-# for mainnet, replace `testnet` with `mainnet`
-curl 'https://stacks-node-api.testnet.stacks.co/v2/fees/transfer'
-```
+### Consensus mechanism
 
-The API will respond with the fee rate (as integer):
+Stacks 2.0 implements a new mining mechanism called Proof of Transfer ("PoX"). PoX is a consensus algorithm between two blockchains. It uses an established blockchain (in this case Bitcoin) to secure a new blockchain (Stacks).
 
-```json
-1
-```
+PoX connects to Bitcoin with a 1:1 block ratio, meaning anything that happens on the Stacks blockchain can be verified on the Bitcoin Blockchain.
 
-[The Stacks Transactions JS library](https://github.com/blockstack/stacks.js/tree/master/packages/transactions) supports fee estimation for:
+Instead of burning electricity on proof of work, PoX reuses already minted bitcoins as "proof of computation" and miners represent their cost of mining in bitcoins directly.
 
-- token transfers (`estimateTransfer`)
-- contract deploys (`estimateContractDeploy`)
-- non read-only contract calls (`estimateContractFunctionCall`)
+[@page-reference | inline] | /understand-stacks/proof-of-transfer
 
--> For an implementation using a different language than JavaScript, please review [this reference implementation](https://github.com/blockstack/stacks.js/blob/master/packages/transactions/src/builders.ts#L97).
+### Mining
 
-## Nonces
+Mining is required to make the network usable, trustworthy, and secure. Miners verify incoming transactions, participate in the consensus mechanism, and write new blocks to the blockchain.
 
-Every account carries a [nonce property](https://en.wikipedia.org/wiki/Cryptographic_nonce) that indicates the number of transactions processed for the given account. Nonces are one-time codes, starting at `0` for new accounts, and incremented by 1 on every transaction.
+To incentivize mining, miners receive freshly minted Stacks (STX) tokens if they win the bid for becoming the leader of the next round.
 
-Nonces are added to all transactions and help identify them in order to ensure transactions are processed in order and to avoid duplicated processing.
+[@page-reference | inline] | /understand-stacks/mining
 
--> The consensus mechanism also ensures that transactions aren't "replayed" in two ways. First, nodes query its unspent transaction outputs (UTXOs) in order to satisfy their spending conditions in a new transaction. Second, messages sent between nodes review sequence numbers.
+### Stacking
 
-When a new token transfer transaction is constructed, the most recent nonce of the account needs to fetched and set.
+Bitcoins used for miner bids are sent to a set of specific addresses corresponding to Stacks (STX) tokens holders that are actively participating in consensus ("Stackers"). Thus, rather than being destroyed, the bitcoins consumed in the mining process go to productive Stacks holders as a reward based on their holdings of Stacks and participation in the Stacking algorithm.
 
--> The API provides an endpoint to [simplify nonce handling](https://docs.hiro.so/get-started/stacks-blockchain-api#nonce-handling).
+Stackers have to lock up their Stacks (STX) tokens for a certain period of time.
 
-## Confirmations
+[@page-reference | inline] | /understand-stacks/stacking
 
-The Stacks 2.0 network is anchored onto the bitcoin network. This allows transactions on Stacks to inherit the same finality and security of the Bitcoin blockchain.
+### Smart contracts
 
-The time to mine a block, to confirm transactions, will eventually match the expected "block time" of the bitcoin network: 10 minutes.
+Clarity is a new language for smart contracts on the Stacks 2.0 blockchain. The Clarity smart contract language optimizes for predictability and security.
 
--> Transactions can also be mined in [microblocks](/understand-stacks/microblocks), reducing the latency significantly.
+Stacks 2.0 anchors clarity smart contracts to Bitcoin making it possible for smart contracts to operate based on actions seen on the bitcoin blockchain.
 
-The block time is hardcoded and will change throughout the implementation phases of the [testnet](/understand-stacks/testnet). The current block time can be obtained through the [`GET /extended/v1/info/network_block_times`](https://docs.hiro.so/api#operation/get_network_block_times) endpoint:
+-> The [Clarity open-source project](https://clarity-lang.org/) is supported by Stacks and [Algorand](https://www.algorand.com/)
 
-```bash
-# for mainnet, replace `testnet` with `mainnet`
-curl 'https://stacks-node-api.testnet.stacks.co/extended/v1/info/network_block_times'
-```
+Clarity is distinct from other languages designed for writing smart contracts in a few ways:
 
-The API will respond with the block time (in seconds):
+- **Predictability**: The Clarity language uses precise and unambiguous syntax that allows developers to predict exactly how their contracts will be executed.
+- **Security**: The Clarity language allows users to supply their own conditions for transactions that ensure that a contract may never unexpectedly transfer a token owned by a user.
+- **No compiler**: Contracts written in Clarity are broadcasted on the Stacks blockchain exactly as they are written by developers. This ensures that the code developers wrote, analyzed, and tested, is exactly what gets executed.
 
-```js
-{
-    "testnet": {
-        "target_block_time": 120
-    },
-    "mainnet": {
-        "target_block_time": 600
-    }
-}
-```
+[@page-reference | inline] | /write-smart-contracts/overview
 
-## Read-only function calls
+## Guides
 
-Smart contracts can expose public function calls. For functions that make state modifications to the blockchain, transactions need to be generated and broadcasted.
+Read one of our guides to understand the ins and outs of the Stacks 2.0 blockchain.
 
-However, for read-only function calls, transactions are **not** required. Instead, these calls can be done using the [Stacks Blockchain API](https://docs.hiro.so/get-started/stacks-blockchain-api).
+[@page-reference | grid-small] | /understand-stacks/accounts, /understand-stacks/transactions, /understand-stacks/network, /understand-stacks/microblocks
 
--> Read-only function calls do not require transaction fees
-
-A read-only contract call can be done using the [`POST /v2/contracts/call-read/<stx_address>/<contract_name>/<function_name>`](https://docs.hiro.so/api#operation/call_read_only_function) endpoint:
-
-```bash
-# for mainnet, replace `testnet` with `mainnet`
-curl --location --request POST 'https://stacks-node-api.testnet.stacks.co/v2/contracts/call-read/<stx_address>/<contract_name>/<function_name>' \
---header 'Content-Type: application/json' \
---data-raw '{
-  "sender": "<stx_address>.<contract_name>",
-  "arguments": [<clarity_value>, ...]
-}'
-```
-
-Sample response for a successful call:
-
-```js
-{
-  "okay": true,
-  "result": "<clarity_value>"
-}
-```
-
--> To set the function call arguments and read the result, [Clarity values](/write-smart-contracts/values) need to be serialized into a hexadecimal string. The [Stacks Transactions JS](https://github.com/blockstack/stacks.js/tree/master/packages/transactions) library supports these operations
-
-## Querying
-
-Stacks 2.0 network details can be queried using the [Stacks Blockchain API](https://docs.hiro.so/get-started/stacks-blockchain-api).
-
-### Health check
-
-The [status checker](https://stacks-status.com/) is a service that provides a user interface to quickly review the health of the Stacks 2.0 blockchain.
-
-### Network info
-
-The network information can be obtained using the [`GET /v2/info`](https://docs.hiro.so/api#operation/get_core_api_info) endpoint:
-
-```bash
-# for mainnet, replace `testnet` with `mainnet`
-curl 'https://stacks-node-api.testnet.stacks.co/v2/info'
-```
-
-Sample response:
-
-```js
-{
-    "peer_version": 385875968,
-    "burn_consensus": "826401d65cf3671210a3fb135d827d549c0b4d37",
-    "burn_block_height": 1972,
-    "stable_burn_consensus": "e27ea23f199076bc41a729d76a813e125b725f64",
-    "stable_burn_block_height": 1971,
-    "server_version": "blockstack-core 0.0.1 => 23.0.0.0 (master:bdd042242+, release build, linux [x86_64]",
-    "network_id": 2147483648,
-    "parent_network_id": 3669344250,
-    "stacks_tip_height": 933,
-    "stacks_tip": "1f601823fbcc5b6b2215b2ff59d2818fba61ee4a3cea426d8bc3dbb268005d8f",
-    "stacks_tip_burn_block": "54c56a9685545c45accf42b5dcb2787c97eda8185a1c794daf9b5a59d4807abc",
-    "unanchored_tip": "71948ee211dac3b241eb65d881637f649d0d49ac08ee4a41c29217d3026d7aae",
-    "exit_at_block_height": 28160
-}
-```
+[comparison of the Stacks blockchain to other blockchain technologies]: https://stacks.org/stacks-blockchain
