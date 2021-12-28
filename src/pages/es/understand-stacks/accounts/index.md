@@ -9,7 +9,7 @@ images:
 
 ## Introduction
 
-Stacks 2.0 2343 accounts are entities that own assets, like Stacks (STX) tokens. An account has an address, private key, nonce, and one or more asset balances.
+Stacks 2.0 accounts are entities that own assets, like Stacks (STX) tokens. An account has an address, private key, nonce, and one or more asset balances.
 
 If you want to jump right in to generate and query a new account, try this tutorial:
 
