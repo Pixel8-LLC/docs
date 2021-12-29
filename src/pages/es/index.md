@@ -1,27 +1,51 @@
 ---
-title: Build apps with Stacks
-description: Authenticate users, sign transactions and store data with the Stacks blockchain
-images:
-  large: /images/pages/build-apps.svg
-  sm: /images/pages/build-apps-sm.svg
+title: Deploy tips
+description: Learn some common methods for deploying your application.
 ---
 
 ## Introduction
 
-Apps built with the Stacks blockchain give users control over their digital identities, assets, and data.
+Stacks applications are web applications that authenticate users with Stacks Auth and store data with Gaia. Both of these technologies can be accessed on the client side. As such, Stacks apps tend to be simple in design and operation, since in many cases, they don’t have to host anything besides the application’s assets.
 
-Unlike most cloud-based apps, they are "decentralized" since they don't depend on any centralized platform, server, or database to function. Rather, they use the Stacks blockchain to authenticate users and facilitate read and write requests for them without any single point of failure or trust.
+## Where to deploy your application
 
-Stacks provides three main functions for building apps:
+Before users can interact with your application, you must deploy it on a server that is accessible over the internet. Deploying requires that you:
 
-- **Authentication**: Register and sign users in with identities on the Stacks blockchain
-- **Transaction signing**: Prompt users to sign and broadcast transactions to the Stacks blockchain
-- **Data storage**: Save and retrieve data for users with [Gaia](/build-apps/references/gaia)
+- Configure or customize the files in the `public` directory.
+- Build your application site for deployment.
+- Copy your generated application files to your production server.
 
-All three of these integrations can be used together to create powerful new user experiences that rival or exceed those of traditional apps—all while protecting your users' digital rights.
+If you first populated your application with the Stacks application generator, your application contains the starting blocks for configuring, building, and deploying your app. For example, the React template builds out a scaffolding with the following building blocks.
 
-While integration is possible for any type of app, most of the resources available here are for web developers experienced with JavaScript. See [Hiro developer docs](https://docs.hiro.so) for more information on the available app development libraries for Stacks.
+| File or Directory          | Description                                                                                                                                                                    |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| node_modules/react-scripts | A set of scripts for that helps you kick off React projects without configuring, so you do not have to set up your project by yourself.                                        |
+| package.json               | Contains a scripts section that includes a reference to the react-scripts, which are a dependency. This script creates a build directory containing your files for deployment. |
+| public/favicon.ico         | An example shortcut icon.                                                                                                                                                      |
+| public/index.html          | An entry page for an application.                                                                                                                                              |
+| public/manifest.json       | A JSON file that describes your web application to the browser.                                                                                                                |
+| cors                       | Contains example deployment files for cross-origin request configuration.                                                                                                      |
 
-## References
+If you use the generator to build JavasScript or Vue scaffolding, your project configuration files will be different.
 
-[@page-reference | grid] | /build-apps/references/authentication, /build-apps/references/bns, /build-apps/references/gaia
+Regardless of which scaffolding you use, you must customize and extend this basic scaffolding as needed by your application. For example, you may want to add more properties to the `manifest.json` file. Since every application is different, Stacks Auth cannot give you specific instructions on how to do this. The steps you take are specific to your application.
+
+## Stacks Authentication and deployment
+
+When your application authenticates users with Stacks, the Stacks Wallet at on URL requests a resource (the app manifest) from your DApp. A request for a resource outside of the origin (the Stacks Wallet) is called as a _cross-origin request_(CORs). Getting data in this manner can be risky, so you must configure your website security to allow interactions across origins.
+
+You can think of CORS interactions as an apartment building with Security. For example, if you need to borrow a ladder, you could ask a neighbor in your building who has one. Security would likely not have a problem with this request (that is, same-origin, your building). If you needed a particular tool, however, and you ordered it delivered from an online hardware store (that is, cross-origin, another site), Security may request identification before allowing the delivery man into the apartment building. (Credit: Codecademy)
+
+The way you configure CORs depends on which company you use to host your web application. The application generator adds a `cors` directory to your application scaffolding. This directory contains files for Netlify (`_headers` and `_redirects`) as well as one for Firebase (`firebase.json`). The configurations in the `cors` directory make your application's `manifest.json` file accessible to other applications (for example, to the Stacks Browser). If you are deploying to a service other than Netlify or Firebase, you must configure CORS on that service to include the following headers when serving `manifest.json`:
+
+````html
+Access-Control-Allow-Origin: * Access-Control-Allow-Headers: "X-Requested-With, Content-Type,
+Origin, Authorization, Accept, Client-Security-Token, Accept-Encoding" Access-Control-Allow-Methods:
+"POST, GET, OPTIONS, DELETE, PUT"```
+````
+
+Consult the documentation for your hosting service to learn how to configure CORS on that service.
+
+## Deployment and Radiks
+
+If you are deploying a Stacks application that uses Radiks, your deployment includes a server and a database component. You must take this into account when deploying your application. You may want to choose a service such as Heroku or Digital Ocean if your app uses Radiks.
