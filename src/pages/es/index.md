@@ -1,110 +1,343 @@
 ---
-title: Microblocks
-description: Guide to Stacks Microblocks
+title: Mine testnet Stacks tokens
+description: Set up and run a miner on the Stacks 2.0 testnet
 icon: TestnetIcon
+experience: beginners
+duration: 10 minutes
+tags:
+  - tutorial
 images:
-  large: /images/pages/testnet.svg
-  sm: /images/pages/testnet-sm.svg
+  large: /images/pages/start-mining.svg
+  sm: /images/pages/start-mining-sm.svg
 ---
 
 ## Introduction
 
-Microblocks are a protocol-level feature of the Stacks blockchain that solve the technical challenge of transaction latency. Because each Stacks block is anchored to a Bitcoin block through the [Proof-of-Transfer consensus mechanism][], Stacks is necessarily limited to the same block times as the Bitcoin network. Microblocks allow the Stacks blockchain to perform state transitions between anchor blocks.
+Make sure you've followed the [Running testnet node](/understand-stacks/running-testnet-node) procedure. Once completed it's only a few more steps to run a proof-of-burn miner on the testnet.
 
-Microblocks are a powerful mechanism for developers to create performant, high quality applications on Stacks, while still inheriting the security of Bitcoin.
+If you want to learn more about the technical details of mining, please review the mining guide:
 
-## Transaction states
+[@page-reference | inline] | /understand-stacks/mining
 
-The [Stacks block production model][] is described in SIP-001. The standard outlines the mechanism by which elected block leaders can produce blocks on the Stacks blockchain either by batching transactions or by streaming them. Microblocks are the product of the streaming model.
+## Running bitcoind locally
 
-If a block leader has elected to mine microblocks, the leader selects transactions from the mempool and package them into microblocks during the current epoch. Microblocks are blocks of transactions included by a miner after the previous anchor block has been mined, but before the next block is selected. Transactions included in microblocks are processed by the network: their results are known.
+To participate as a miner on Xenon, you must have access to a testnet bitcoin node. One way to accomplish this is to run bitcoind locally. [Ensure your computer meets the minimum hardware requirements before continuing.](https://bitcoin.org/en/bitcoin-core/features/requirements)
 
-Consider a transaction from the perspective of the number of block confirmations it has. A transaction included in a microblock might have the following example lifecycle:
+First, download the bitcoind software for your platform from https://bitcoin.org/en/download.
 
+Next, start bitcoind with the following configuration:
+
+```toml
+server=1
+rpcuser=your-bitcoind-username
+rpcpassword=your-bitcoind-password
+testnet=1
+txindex=0
+listen=1
+rpcserialversion=0
+maxorphantx=1
+banscore=1
+
+[test]
+bind=0.0.0.0:18333
+rpcbind=0.0.0.0:18332
+rpcport=18332
 ```
-Transaction 1 is broadcast to the mempool. It has 0 confirmations.
-Transaction 1 is included in a microblock. It still has 0 confirmations, but the results of the transaction are known
-Transaction 1 is included in the next anchor block. It has 1 confirmation.
-The next Stacks block confirms the previous block. Transaction 1 has 2 confirmations.
-The next Stacks block confirms the previous block. Transaction 1 has 3 confirmations.
+
+Finally, start bitcoind as follows:
+
+```bash
+bitcoind -conf=path/to/bitcoin.conf
+```
+
+It may take a few hours for the node to synchronize with the Bitcoin testnet.
+
+## Running a miner
+
+First, a keychain needs to be generated. With this keychain, we'll get some testnet BTC from a faucet, and then use that BTC to start mining.
+
+To get a keychain, the simplest way is to use the `stacks-cli`. We'll use the `make_keychain` command, and pass `-t` to indicate that we want a testnet keychain.
+
+```bash
+npx @stacks/cli make_keychain -t 2>/dev/null | json_pp > keychain.txt
+```
+
+After this runs, you should see some JSON in the new `keychain.txt` file that looks like this:
+
+```json
+{
+  "mnemonic": "exhaust spin topic distance hole december impulse gate century absent breeze ostrich armed clerk oak peace want scrap auction sniff cradle siren blur blur",
+  "keyInfo": {
+    "privateKey": "2033269b55026ff2eddaf06d2e56938f7fd8e9d697af8fe0f857bb5962894d5801",
+    "address": "STTX57EGWW058FZ6WG3WS2YRBQ8HDFGBKEFBNXTF",
+    "btcAddress": "mkRYR7KkPB1wjxNjVz3HByqAvVz8c4B6ND",
+    "index": 0
+  }
+}
+```
+
+**Don't lose this information** - we'll need to use the `privateKey` field later on.
+
+The above BTC address will then need to be imported into the BTC testnet network.
+
+```bash
+bitcoin-cli -rpcport=18332 -rpcuser=your-user -rpcpassword=your-password importaddress <btcAddress from JSON above>
+```
+
+Once imported, we need to get some testnet BTC to that address. Grab the `btcAddress` field, and paste it into [this Bitcoin testnet faucet](https://tbtc.bitaps.com/). You'll be sent `0.01` testnet BTC to that address.
+
+Now, we need to configure our node to use this Bitcoin keychain. Clone the [stacks-blockchain repository](https://github.com/blockstack/stacks-blockchain) to your local machine if you haven't already. In the `stacks-blockchain` folder, modify the file at [`testnet/stacks-node/conf/testnet-miner-conf.toml`](https://github.com/blockstack/stacks-blockchain/blob/master/testnet/stacks-node/conf/testnet-miner-conf.toml).
+
+Update the following properties:
+
+```toml
+[node]
+...
+seed = "replace-with-your-private-key"
+local_peer_seed = "replace-with-your-private-key"
+...
+
+[burnchain]
+...
+# To mine on Xenon, you need to run bitcoind locally
+# Details can be found in above section, 'Running bitcoind locally'
+peer_host = "127.0.0.1"
+username = "<USERNAME>"
+password = "<PASSWORD>"
 ...
 ```
 
-Consider a similar transaction that is not included in a microblock:
+Now, grab your `privateKey` from earlier, when you ran the `make_keychain` command. Replace the `seed` field with your private key. Save and close this configuration file.
 
+To run your miner, run this in the command line:
+
+```bash
+stacks-node start --config=./testnet/stacks-node/conf/testnet-miner-conf.toml
 ```
-Transaction 2 is broadcast to the mempool. It has 0 confirmations.
-Transaction 2 is included in the next anchor block. It has 1 confirmation.
-The next Stacks block confirms the previous block. Transaction 2 has 2 confirmations.
-The next Stacks block confirms the previous block. Transaction 2 has 3 confirmations.
+
+Your node should start. It will take some time to sync, and then your miner will be running.
+
+### Creating an optimized binary
+
+The steps above are great for trying to run a node temporarily. If you want to host a node on a server somewhere, you might want to generate an optimized binary. To do so, use the same configuration as above, but run:
+
+```bash
+cd testnet/stacks-node
+cargo build --release --bin stacks-node
 ```
 
-The lifecycles of the two transactions are similar, but the difference is pending state. Many Bitcoin wallets display 0-confirmation balances: your wallet balance with any mempool transactions already applied. This is useful because it tells you when you've sent a transaction or received one. With smart contracts, displaying pending state is not as straightforward, because smart contracts do not just transfer inputs to outputs, they may call other contracts, emit events, or perform other computations. A transaction processed in a microblock generates all that information.
+The above code will compile an optimized binary. To use it, run:
 
--> If a transaction is dependent on a chain state that could by altered by previous transactions with serious implications, you should carefully consider whether it should be performed using microblocks.
+```bash
+cd ../..
+./target/release/stacks-node start --config=./testnet/conf/testnet-follower-conf.toml
+```
 
-## Enabling microblocks
+For a full reference of subcommands and configuration options used by `stacks-node`, please see this page.
 
-Miners can choose to enable or disable microblocks in their mining configuration. As a best practice, miners should enable microblock mining. When an application or user submits a transaction, the transaction can include an argument that requires the transaction to be in a microblock, an anchor block, or in either.
+[@page-reference | inline] | /references/stacks-node-configuration
 
-### Transactions
+To read more about the technical details of mining on the Stacks 2.0 network, have a look at the minig guide:
 
-Transactions include an option that controls if a miner should include them in microblocks or in anchor blocks. The anchor mode transaction option is an optional argument that controls whether a transaction must be included in an anchor block or a microblock, or is eligible for either.
+[@page-reference | inline] | /understand-stacks/mining
 
-### Mining
+### Enable debug logging
 
-Stacks miners must enable microblocks in their miner configuration to implement the block streaming model. For more information, see [mining microblocks][].
+In case you are running into issues or would like to see verbose logging, you can run your node with debug logging enabled. In the command line, run:
 
-## Developing with microblocks
+```bash
+STACKS_LOG_DEBUG=1 stacks-node xenon
+```
 
-In most cases, information from transactions included in microblocks should be treated like information from any other block. Wallets and explorers should display the consequences of microblock transactions as the current state of the network. This state should be acknowledged as tentative.
+## Running a miner in Windows
 
-A microblock transaction can end up being reorganized in the next block rather than just being confirmed as-is. Because of this, your UI should communicate to users if the outputs of a transaction changed, or if the transaction's associated block changed. This is the same outcome as if a 1-block fork occurred.
+### Prerequisites
 
-### Stacks.js libraries
+Make sure you've followed the [Running the testnet node on Windows](/understand-stacks/running-testnet-node#running-the-testnet-node-on-windows) tutorial before starting this tutorial.
 
-Stacks.js provides the [AnchorMode][] argument on transaction objects so that your application can set the microblocks preference for transactions.
+### Generate keychain and get testnet tokens in Windows
 
-### API
+To setup the miner, first, we need to generate a keychain. With this keychain, we'll get some testnet BTC from a faucet, and then use that BTC to start mining.
 
-!> API support for microblocks is a work-in-progress. Review the [API documentation][microblocks_api] carefully to ensure that you are up-to-date on the latest implementation details for microblocks.
+To get a keychain, the simplest way is to use the `stacks-cli`. We'll use the `stx make-keychain` command, and pass `-t` to indicate that we want a testnet keychain.
 
-The Stacks Blockchain API exposes microblocks through several endpoints. Please review the [Stacks Blockchain API guide][] for more details.
+Generate a keychain:
 
-## Best practices
+```bash
+npm install --global @stacks/cli
+stx make_keychain -t > cli_keychain.json
+type cli_keychain.json
+```
 
-Working with microblocks is a design decision that you must make for your own application. When working with microblocks, the following best practices are recommended.
+After this runs, you'll probably see some installation logs, and at the end you should see some JSON that looks like this:
 
-### Handling nonce
+```json
+{
+  "mnemonic": "exhaust spin topic distance hole december impulse gate century absent breeze ostrich armed clerk oak peace want scrap auction sniff cradle siren blur blur",
+  "keyInfo": {
+    "privateKey": "2033269b55026ff2eddaf06d2e56938f7fd8e9d697af8fe0f857bb5962894d5801",
+    "address": "STTX57EGWW058FZ6WG3WS2YRBQ8HDFGBKEFBNXTF",
+    "btcAddress": "mkRYR7KkPB1wjxNjVz3HByqAvVz8c4B6ND",
+    "index": 0
+  }
+}
+```
 
-Nonce handling with microblocks is challenging because the next account nonce must take into account any nonce values included in microblocks, which may not yet be included in an anchor block. The Stacks Blockchain API [provides an endpoint][] to retrieve the next nonce for a given principal.
+-> Check out the [Stacks CLI reference](https://docs.hiro.so/references/stacks-cli) for more details
 
-### Application design
+Request BTC from faucet:
 
-The state of microblock transactions should be carefully communicated to users. No transaction is final until it's included in an anchor block, and your application design should reflect this.
+We need to get some testnet BTC to that address. Grab the `btcAddress` field, and paste it into [this Bitcoin testnet faucet](https://tbtc.bitaps.com/). You'll be sent 0.01 testnet BTC to that address.
 
-The following guidelines are provided as an initial set of best practices for UI design when incorporating microblocks into your application.
+### Update configuration file
 
-#### Explorers
+Now, we need to configure our node to use this Bitcoin keychain. Clone the [stacks-blockchain repository](https://github.com/blockstack/stacks-blockchain) to your local machine if you haven't already. In the `stacks-blockchain` folder, modify the file at [`testnet/stacks-node/conf/testnet-miner-conf.toml`](https://github.com/blockstack/stacks-blockchain/blob/master/testnet/stacks-node/conf/testnet-miner-conf.toml).
 
-Display pending state, but warn that a transaction is still pending. Indicate visually that displayed balances depend on pending state.
+Update the following properties:
 
-#### Wallets
+```toml
+[node]
+...
+seed = "replace-with-your-private-key"
+local_peer_seed = "replace-with-your-private-key"
+...
 
-Display pending state, but warn that a transaction is still pending. Indicate visually that displayed balances depend on pending state.
+[burnchain]
+...
+# To mine on Xenon, you need to run bitcoind locally
+# Details can be found in above section, 'Running bitcoind locally'
+peer_host = "127.0.0.1"
+username = "<USERNAME>"
+password = "<PASSWORD>"
+...
+```
 
-#### Exchanges
+Now, grab your `privateKey` from earlier, when you ran the `stx make_keychain` command. Replace the seed field with your private key. Save and close this configuration file.
 
-Continue to count confirmations, microblocks should be considered pending.
+### Run the miner
 
-#### Applications
+To start your miner, run this in the command line:
 
-Microblock communication is highly app-dependent. For some applications, displaying a pending or 0-confirmation transaction as confirmed may be fine. For example, storing data on the chain, or querying the BNS contract. For other applications, such as the transfer of real value, waiting for 3-confirmations would be prudent before displaying the state as confirmed.
+```bash
+stacks-node start --config=testnet/stacks-node/conf/testnet-miner-conf.toml
+```
 
-[Proof-of-Transfer consensus mechanism]: /understand-stacks/proof-of-transfer
-[Stacks block production model]: https://github.com/stacksgov/sips/blob/main/sips/sip-001/sip-001-burn-election.md#operation-as-a-leader
-[mining microblocks]: /understand-stacks/mining#microblocks
-[AnchorMode]: https://stacks-js-git-master-blockstack.vercel.app/enums/transactions.anchormode.html
-[Stacks Blockchain API guide]: https://docs.hiro.so/get-started/stacks-blockchain-api#microblocks-support
-[provides an endpoint]: https://docs.hiro.so/get-started/stacks-blockchain-api#nonce-handling
-[microblocks_api]: https://docs.hiro.so/api#tag/Microblocks
+-> **Note** : While starting the node for the first time, windows defender might pop up with a message to allow access. If so, allow access to run the node. ![Windows Defender](/images/windows-defender.png)
+
+Your node should start. It will take some time to sync, and then your miner will be running.
+
+### Enable debug logging in Windows
+
+In case you are running into issues or would like to see verbose logging, you can run your node with debug logging enabled. In the command line, run:
+
+```bash
+set RUST_BACKTRACE=full;
+set STACKS_LOG_DEBUG=1;
+stacks-node start --config=testnet-miner-conf.toml
+```
+
+## Optional: Running with Docker
+
+Alternatively, you can run the testnet node with Docker.
+
+-> Ensure you have [Docker](https://docs.docker.com/get-docker/) installed on your machine.
+
+### Generate keychain and get testnet tokens
+
+Generate a keychain:
+
+```bash
+docker run -i node:14-alpine npx @stacks/cli make_keychain -t 2>/dev/null
+```
+
+We need to get some testnet BTC to that address. Grab the `btcAddress` field, and paste it into [this Bitcoin testnet faucet](https://tbtc.bitaps.com/). You'll be sent 0.01 testnet BTC to that address.
+
+### Update config file
+
+Now, we need to configure our node to use this Bitcoin keychain. Clone the [stacks-blockchain repository](https://github.com/blockstack/stacks-blockchain) to your local machine if you haven't already. In the `stacks-blockchain` folder, modify the file at [`testnet/stacks-node/conf/testnet-miner-conf.toml`](https://github.com/blockstack/stacks-blockchain/blob/master/testnet/stacks-node/conf/testnet-miner-conf.toml).
+
+Update the following properties:
+
+```toml
+[node]
+...
+seed = "replace-with-your-private-key"
+local_peer_seed = "replace-with-your-private-key"
+...
+
+[burnchain]
+...
+# To mine on Xenon, you need to run bitcoind locally
+# Details can be found in above section, 'Running bitcoind locally'
+peer_host = "127.0.0.1"
+username = "<USERNAME>"
+password = "<PASSWORD>"
+...
+```
+
+Now, grab your `privateKey` from earlier, when you ran the `stx make_keychain` command. Replace the seed field with your private key. Save and close this configuration file.
+
+### Start the miner
+
+-> The ENV VARS `RUST_BACKTRACE` and `STACKS_LOG_DEBUG` are optional. If removed, debug logs will be disabled
+
+```bash
+docker run -d \
+  --name stacks_miner \
+  --rm \
+  --network host \
+  -e RUST_BACKTRACE="full" \
+  -e STACKS_LOG_DEBUG="1" \
+  -v "$(pwd))/testnet/stacks-node/conf/testnet-miner-conf.toml:/src/stacks-node/testnet-miner-conf.toml" \
+  -p 20443:20443 \
+  -p 20444:20444 \
+  blockstack/stacks-blockchain:latest \
+/bin/stacks-node start --config /src/stacks-node/testnet-miner-conf.toml
+```
+
+You can review the node logs with this command:
+
+```bash
+docker logs -f stacks_miner
+```
+
+## Optional: Running in Kubernetes with Helm
+
+In addition, you're also able to run a testnet node in a Kubernetes cluster using the [stacks-blockchain Helm chart](https://github.com/blockstack/stacks-blockchain/tree/master/deployment/helm/stacks-blockchain).
+
+Ensure you have the following prerequisites installed on your machine:
+
+- [Docker](https://docs.docker.com/get-docker/)
+- [minikube](https://minikube.sigs.k8s.io/docs/start/) (Only needed if standing up a local Kubernetes cluster)
+- [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
+- [helm](https://helm.sh/docs/intro/install/)
+
+### Generate keychain and get some testnet tokens
+
+Generate a keychain:
+
+```bash
+docker run -i node:14-alpine npx @stacks/cli make_keychain -t 2>/dev/null
+```
+
+We need to get some testnet BTC to that address. Grab the `btcAddress` field, and paste it into [this Bitcoin testnet faucet](https://tbtc.bitaps.com/). You'll be sent 0.01 testnet BTC to that address.
+
+### Install the chart and run the miner
+
+To install the chart with the release name `my-release` and run the node as a miner:
+
+```bash
+minikube start # Only run this if standing up a local Kubernetes cluster
+helm repo add blockstack https://charts.blockstack.xyz
+helm install my-release blockstack/stacks-blockchain \
+  --set config.node.miner=true \
+  --set config.node.seed="replace-with-your-privateKey-from-generate-keychain-step"
+```
+
+You can review the node logs with this command:
+
+```bash
+kubectl logs -l app.kubernetes.io/name=stacks-blockchain
+```
+
+For more information on the Helm chart and configuration options, please refer to the [chart's homepage](https://github.com/blockstack/stacks-blockchain/tree/master/deployment/helm/stacks-blockchain).
