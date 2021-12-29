@@ -1,24 +1,24 @@
 ---
-title: Stacks documentation
-description: Learn about Stacks mining,345 the STX token, and the Clarity smart contract language
+title: Clarity Values
+description: Learn how to deal with Clarity Values in JavaScript
 images:
   large: /images/pages/write-smart-contracts.svg
   sm: /images/pages/write-smart-contracts-sm.svg
 ---
 
-## Understand Stacks
+## Introduction
 
 The Clarity language makes use of a strong static [type system](/references/language-clarity#clarity-type-system). This simply means that every function defined in Clarity expects arguments of specific types, and that a failure to provide properly typed arguments will result in your code failing to compile, or your contract call transactions failing prior to execution.
 
 In order to build web applications that interact with Clarity contracts, you will need to learn how to construct and use `ClarityValue` objects. The [@stacks/transactions](https://github.com/blockstack/stacks.js/tree/master/packages/transactions) library makes this easy, as we will demonstrate below.
 
-## Write smart contracts
+## Clarity Types
 
-[@page-reference | grid] | /write-smart-contracts/overview, /write-smart-contracts/tokens
+Please see the following page for information on Clarity Types:
 
-[@page-reference | grid] | /start-mining/mainnet, /start-mining/testnet
+[@page-reference | inline] | /references/language-types
 
-## Start mining
+## Constructing Clarity Values and accessing their data
 
 Clarity values can be constructed with functions provided by the [@stacks/transactions](https://github.com/blockstack/stacks.js/tree/master/packages/transactions) library. These functions simply output javascript objects that contain a value and a numerical representation of the Clarity type information. The Clarity types are encoded as follows:
 
