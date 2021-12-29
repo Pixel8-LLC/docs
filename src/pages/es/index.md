@@ -1,51 +1,65 @@
 ---
-title: Deploy tips
-description: Learn some common methods for deploying your application.
+title: Authentication
+description: Register and sign in users with identities on the Stacks blockchain
+images:
+  large: /images/pages/write-smart-contracts.svg
+  sm: /images/pages/write-smart-contracts-sm.svg
 ---
 
 ## Introduction
 
-Stacks applications are web applications that authenticate users with Stacks Auth and store data with Gaia. Both of these technologies can be accessed on the client side. As such, Stacks apps tend to be simple in design and operation, since in many cases, they don’t have to host anything besides the application’s assets.
+This guide explains how authentication is performed on the Stacks blockchain.
 
-## Where to deploy your application
+Authentication provides a way for users to identify themselves to an app while retaining complete control over their credentials and personal details. It can be integrated alone or used in conjunction with [transaction signing](https://docs.hiro.so/get-started/transactions#signature-and-verification) and [data storage](https://docs.stacks.co/build-apps/references/gaia), for which it is a prerequisite.
 
-Before users can interact with your application, you must deploy it on a server that is accessible over the internet. Deploying requires that you:
+Users who register for your app can subsequently authenticate to any other app with support for the [Blockchain Naming System](/build-apps/references/bns) and vice versa.
 
-- Configure or customize the files in the `public` directory.
-- Build your application site for deployment.
-- Copy your generated application files to your production server.
+## How it works
 
-If you first populated your application with the Stacks application generator, your application contains the starting blocks for configuring, building, and deploying your app. For example, the React template builds out a scaffolding with the following building blocks.
+The authentication flow with Stacks is similar to the typical client-server flow used by centralized sign in services (for example, OAuth). However, with Stacks the authentication flow happens entirely client-side.
 
-| File or Directory          | Description                                                                                                                                                                    |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| node_modules/react-scripts | A set of scripts for that helps you kick off React projects without configuring, so you do not have to set up your project by yourself.                                        |
-| package.json               | Contains a scripts section that includes a reference to the react-scripts, which are a dependency. This script creates a build directory containing your files for deployment. |
-| public/favicon.ico         | An example shortcut icon.                                                                                                                                                      |
-| public/index.html          | An entry page for an application.                                                                                                                                              |
-| public/manifest.json       | A JSON file that describes your web application to the browser.                                                                                                                |
-| cors                       | Contains example deployment files for cross-origin request configuration.                                                                                                      |
+An app and authenticator, such as [the Stacks Wallet](https://www.hiro.so/wallet/install-web), communicate during the authentication flow by passing back and forth two tokens. The requesting app sends the authenticator an `authRequest` token. Once a user approves authentication, the authenticator responds to the app with an `authResponse` token.
 
-If you use the generator to build JavasScript or Vue scaffolding, your project configuration files will be different.
+These tokens are are based on [a JSON Web Token (JWT) standard](https://tools.ietf.org/html/rfc7519) with additional support for the `secp256k1` curve used by Bitcoin and many other cryptocurrencies. They are passed via URL query strings.
 
-Regardless of which scaffolding you use, you must customize and extend this basic scaffolding as needed by your application. For example, you may want to add more properties to the `manifest.json` file. Since every application is different, Stacks Auth cannot give you specific instructions on how to do this. The steps you take are specific to your application.
+When a user chooses to authenticate an app, it sends the `authRequest` token to the authenticator via a URL query string with an equally named parameter:
 
-## Stacks Authentication and deployment
+`https://wallet.hiro.so/...?authRequest=j902120cn829n1jnvoa...`
 
-When your application authenticates users with Stacks, the Stacks Wallet at on URL requests a resource (the app manifest) from your DApp. A request for a resource outside of the origin (the Stacks Wallet) is called as a _cross-origin request_(CORs). Getting data in this manner can be risky, so you must configure your website security to allow interactions across origins.
+When the authenticator receives the request, it generates an `authResponse` token for the app using an _ephemeral transit key_ . The ephemeral transit key is just used for the particular instance of the app, in this case, to sign the `authRequest`.
 
-You can think of CORS interactions as an apartment building with Security. For example, if you need to borrow a ladder, you could ask a neighbor in your building who has one. Security would likely not have a problem with this request (that is, same-origin, your building). If you needed a particular tool, however, and you ordered it delivered from an online hardware store (that is, cross-origin, another site), Security may request identification before allowing the delivery man into the apartment building. (Credit: Codecademy)
+The app stores the ephemeral transit key during request generation. The public portion of the transit key is passed in the `authRequest` token. The authenticator uses the public portion of the key to encrypt an _app private key_ which is returned via the `authResponse`.
 
-The way you configure CORs depends on which company you use to host your web application. The application generator adds a `cors` directory to your application scaffolding. This directory contains files for Netlify (`_headers` and `_redirects`) as well as one for Firebase (`firebase.json`). The configurations in the `cors` directory make your application's `manifest.json` file accessible to other applications (for example, to the Stacks Browser). If you are deploying to a service other than Netlify or Firebase, you must configure CORS on that service to include the following headers when serving `manifest.json`:
+The authenticator generates the app private key from the user's _identity address private key_ and the app's domain. The app private key serves three functions:
 
-````html
-Access-Control-Allow-Origin: * Access-Control-Allow-Headers: "X-Requested-With, Content-Type,
-Origin, Authorization, Accept, Client-Security-Token, Accept-Encoding" Access-Control-Allow-Methods:
-"POST, GET, OPTIONS, DELETE, PUT"```
-````
+1. It is used to create credentials that give the app access to a storage bucket in the user's Gaia hub
+2. It is used in the end-to-end encryption of files stored for the app in the user's Gaia storage.
+3. It serves as a cryptographic secret that apps can use to perform other cryptographic functions.
 
-Consult the documentation for your hosting service to learn how to configure CORS on that service.
+Finally, the app private key is deterministic, meaning that the same private key will always be generated for a given Stacks address and domain.
 
-## Deployment and Radiks
+The first two of these functions are particularly relevant to [data storage with Stacks.js](https://docs.stacks.co/build-apps/references/gaia).
 
-If you are deploying a Stacks application that uses Radiks, your deployment includes a server and a database component. You must take this into account when deploying your application. You may want to choose a service such as Heroku or Digital Ocean if your app uses Radiks.
+## Key pairs
+
+Authentication with Stacks makes extensive use of public key cryptography generally and ECDSA with the `secp256k1` curve in particular.
+
+The following sections describe the three public-private key pairs used, including how they're generated, where they're used and to whom private keys are disclosed.
+
+### Transit private key
+
+The transit private is an ephemeral key that is used to encrypt secrets that need to be passed from the authenticator to the app during the authentication process. It is randomly generated by the app at the beginning of the authentication response.
+
+The public key that corresponds to the transit private key is stored in a single element array in the `public_keys` key of the authentication request token. The authenticator encrypts secret data such as the app private key using this public key and sends it back to the app when the user signs in to the app. The transit private key signs the app authentication request.
+
+### Identity address private key
+
+The identity address private key is derived from the user's keychain phrase and is the private key of the Stacks username that the user chooses to use to sign in to the app. It is a secret owned by the user and never leaves the user's instance of the authenticator.
+
+This private key signs the authentication response token for an app to indicate that the user approves sign in to that app.
+
+### App private key
+
+The app private key is an app-specific private key that is generated from the user's identity address private key using the `domain_name` as input.
+
+The app private key is securely shared with the app on each authentication, encrypted by the authenticator with the transit public key. Because the transit key is only stored on the client side, this prevents a man-in-the-middle attack where a server or internet provider could potentially snoop on the app private key.
