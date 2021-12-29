@@ -1,19 +1,19 @@
 ---
-title: Running a mainnet node
-description: Set up and run a mainnet node with Docker
-icon: MainnetIcon
+title: Running a testnet node
+description: Set up and run a testnet node with Docker
+icon: TestnetIcon
 duration: 15 minutes
 experience: beginners
 tags:
   - tutorial
 images:
-  large: /images/pages/mainnet.svg
-  sm: /images/pages/mainnet-sm.svg
+  large: /images/cli.svg
+  sm: /images/cli.svg
 ---
 
 ## Introduction
 
-This procedure demonstrates how to run a local mainnet node using Docker images.
+This procedure demonstrates how to run a local testnet node using Docker images.
 
 -> This procedure focuses on Unix-like operating systems (Linux and MacOS). This procedure has not been tested on Windows.
 
@@ -39,15 +39,15 @@ Ingress:
 
 Egress:
 
-- `8332`
-- `8333`
+- `18332`
+- `18333`
 - `20443-20444`
 
 These egress ports are for syncing [`stacks-blockchain`][] and Bitcoin headers. If they're not open, the sync will fail.
 
 ## Step 1: initial setup
 
-In order to run the mainnet node, you must download the Docker images and create a directory structure to hold the persistent data from the services. Download and configure the Docker images with the following commands:
+In order to run the testnet node, you must download the Docker images and create a directory structure to hold the persistent data from the services. Download and configure the Docker images with the following commands:
 
 ```sh
 docker pull blockstack/stacks-blockchain
@@ -56,49 +56,21 @@ docker pull blockstack/stacks-blockchain
 Create a directory structure for the service data with the following command:
 
 ```sh
-mkdir -p ./stacks-node/{persistent-data/stacks-blockchain/mainnet,config/mainnet} && cd stacks-node
+mkdir -p ./stacks-node/persistent-data/stacks-blockchain/testnet && cd stacks-node
 ```
 
 ## Step 2: running Stacks blockchain
-
-First, create the `./config/mainnet/Config.toml` file and add the following content to the file using a text editor:
-
-```toml
-[node]
-working_dir = "/root/stacks-node/data"
-rpc_bind = "0.0.0.0:20443"
-p2p_bind = "0.0.0.0:20444"
-bootstrap_node = "02da7a464ac770ae8337a343670778b93410f2f3fef6bea98dd1c3e9224459d36b@seed-0.mainnet.stacks.co:20444,02afeae522aab5f8c99a00ddf75fbcb4a641e052dd48836408d9cf437344b63516@seed-1.mainnet.stacks.co:20444,03652212ea76be0ed4cd83a25c06e57819993029a7b9999f7d63c36340b34a4e62@seed-2.mainnet.stacks.co:20444"
-wait_time_for_microblocks = 10000
-
-[burnchain]
-chain = "bitcoin"
-mode = "mainnet"
-peer_host = "bitcoin.blockstack.com"
-username = "blockstack"
-password = "blockstacksystem"
-rpc_port = 8332
-peer_port = 8333
-
-[connection_options]
-read_only_call_limit_write_length = 0
-read_only_call_limit_read_length = 100000
-read_only_call_limit_write_count = 0
-read_only_call_limit_read_count = 30
-read_only_call_limit_runtime = 1000000000
-```
 
 Start the [`stacks-blockchain`][] container with the following command:
 
 ```sh
 docker run -d --rm \
   --name stacks-blockchain \
-  -v $(pwd)/persistent-data/stacks-blockchain/mainnet:/root/stacks-node/data \
-  -v $(pwd)/config/mainnet:/src/stacks-node \
+  -v $(pwd)/persistent-data/stacks-blockchain/testnet:/root/stacks-node/data \
   -p 20443:20443 \
   -p 20444:20444 \
   blockstack/stacks-blockchain \
-/bin/stacks-node start --config /src/stacks-node/Config.toml
+/bin/stacks-node xenon
 ```
 
 You can verify the running [`stacks-blockchain`][] container with the command:
@@ -120,9 +92,9 @@ docker logs stacks-blockchain
 The output should be similar to the following:
 
 ```
-INFO [1626290705.886954] [src/burnchains/bitcoin/spv.rs:926] [main] Syncing Bitcoin headers: 1.2% (8000 out of 691034)
-INFO [1626290748.103291] [src/burnchains/bitcoin/spv.rs:926] [main] Syncing Bitcoin headers: 1.4% (10000 out of 691034)
-INFO [1626290776.956535] [src/burnchains/bitcoin/spv.rs:926] [main] Syncing Bitcoin headers: 1.7% (12000 out of 691034)
+INFO [1626290705.886954] [src/burnchains/bitcoin/spv.rs:926] [main] Syncing Bitcoin headers: 1.2% (8000 out of 2034380)
+INFO [1626290748.103291] [src/burnchains/bitcoin/spv.rs:926] [main] Syncing Bitcoin headers: 1.4% (10000 out of 2034380)
+INFO [1626290776.956535] [src/burnchains/bitcoin/spv.rs:926] [main] Syncing Bitcoin headers: 1.7% (12000 out of 2034380)
 ```
 
 To verify the [`stacks-blockchain`][] tip height is progressing use the following command:
@@ -135,27 +107,27 @@ If the instance is running you should recieve terminal output similar to the fol
 
 ```json
 {
-  "peer_version": 402653184,
-  "pox_consensus": "89d752034e73ed10d3b97e6bcf3cff53367b4166",
-  "burn_block_height": 666143,
-  "stable_pox_consensus": "707f26d9d0d1b4c62881a093c99f9232bc74e744",
-  "stable_burn_block_height": 666136,
-  "server_version": "stacks-node 2.0.11.1.0-rc1 (master:67dccdf, release build, linux [x86_64])",
-  "network_id": 1,
-  "parent_network_id": 3652501241,
-  "stacks_tip_height": 61,
-  "stacks_tip": "e08b2fe3dce36fd6d015c2a839c8eb0885cbe29119c1e2a581f75bc5814bce6f",
-  "stacks_tip_consensus_hash": "ad9f4cb6155a5b4f5dcb719d0f6bee043038bc63",
+  "peer_version": 4207599105,
+  "pox_consensus": "12f7fa85e5099755a00b7eaecded1aa27af61748",
+  "burn_block_height": 2034380,
+  "stable_pox_consensus": "5cc4e0403ff6a1a4bd17dae9600c7c13d0b10bdf",
+  "stable_burn_block_height": 2034373,
+  "server_version": "stacks-node 2.0.11.2.0-rc1 (develop:7b6d3ee+, release build, linux [x86_64])",
+  "network_id": 2147483648,
+  "parent_network_id": 118034699,
+  "stacks_tip_height": 509,
+  "stacks_tip": "e0ee952e9891709d196080ca638ad07e6146d4c362e6afe4bb46f42d5fe584e8",
+  "stacks_tip_consensus_hash": "12f7fa85e5099755a00b7eaecded1aa27af61748",
   "genesis_chainstate_hash": "74237aa39aa50a83de11a4f53e9d3bb7d43461d1de9873f402e5453ae60bc59b",
-  "unanchored_tip": "74d172df8f8934b468c5b0af2efdefe938e9848772d69bcaeffcfe1d6c6ef041",
+  "unanchored_tip": "32bc86590f11504f17904ee7f5cb05bcf71a68a35f0bb3bc2d31aca726090842",
   "unanchored_seq": 0,
   "exit_at_block_height": null
 }
 ```
 
-## Stopping the mainnet node
+## Stopping the testnet node
 
-Use the following commands to stop the local mainnet node:
+Use the following commands to stop the local testnet node:
 
 ```sh
 docker stop stacks-blockchain
