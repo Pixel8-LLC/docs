@@ -1,5 +1,3 @@
 files:
   - source: /src/pages/**/*.md
-    ignore:
-      - es
-    translation: /src/pages/%two_letters_code%/%original_file_name%
+    translation: /src/pages/%two_letters_code%/**/%original_file_name%
