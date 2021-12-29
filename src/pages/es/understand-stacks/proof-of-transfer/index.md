@@ -7,15 +7,15 @@ images:
   sm: /images/stacking.svg
 ---
 
-## Resumen
+## Overview
 
-Los algoritmos de consenso para blockchains requieren recursos financieros o computadores para asegurar la cadena de bloques. La práctica general del consenso descentralizado es hacer prácticamente inviable que cualquier actor malicioso tenga suficiente poder informático o participación en la propiedad para atacar la red.
+Consensus algorithms for blockchains require compute or financial resources to secure the blockchain. The general practice of decentralized consensus is to make it practically infeasible for any single malicious actor to have enough computing power or ownership stake to attack the network.
 
-Los mecanismos de consenso populares en las cadenas de bloques modernas incluyen la prueba de trabajo, en la que los nodos dedican recursos de computación, y prueba de apuesta, en la que los nodos dedican recursos financieros a asegurar la red.
+Popular consensus mechanisms in modern blockchains include proof-of-work, in which nodes dedicate computing resources, and proof-of-stake, in which nodes dedicate financial resources to secure the network.
 
-La prueba de quema es un novedoso mecanismo de consenso en el que los mineros compiten por “quemar” (destruir) una criptomoneda de prueba de trabajo como un proxy de recursos informáticos.
+Proof-of-burn is a novel consensus mechanism where miners compete by ‘burning’ (destroying) a proof-of-work cryptocurrency as a proxy for computing resources.
 
-La prueba de transferencia (PoX) es una extensión del mecanismo de prueba de quemadura. PoX utiliza la criptomoneda a prueba de trabajo de un blockchain establecido para asegurar una nueva cadena de bloques. Sin embargo, a diferencia de la prueba de la quemadura, en lugar de quemar la criptomoneda, los mineros transfieren la criptomoneda comprometida a algunos otros participantes en la red.
+Proof-of-transfer (PoX) is an extension of the proof-of-burn mechanism. PoX uses the proof-of-work cryptocurrency of an established blockchain to secure a new blockchain. However, unlike proof-of-burn, rather than burning the cryptocurrency, miners transfer the committed cryptocurrency to some other participants in the network.
 
 ![PoX mechanism](/images/pox-mechanism.png)
 
