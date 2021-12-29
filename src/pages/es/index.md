@@ -1,27 +1,43 @@
 ---
-title: Testnet
-description: Test your smart contracts and apps
+title: Transactions
+description: Guide to Stacks 2.0 transactions
+icon: TestnetIcon
 images:
-  large: /images/pages/testnet.svg
-  sm: /images/pages/testnet-sm.svg
+  large: /images/transaction-signing.svg
+  sm: /images/transaction-signing.svg
 ---
 
-## About testnet
+## Introduction
 
-The testnet is a separate blockchain from the Stacks mainnet analogous to a staging environnment. It's a network used by developers to test their apps, smart contracts, or changes to the protocol in a production-like environment. It produces blocks at roughly the same rate as mainnet; about 1 block every 10 minutes on average. The Stacks testnet is rarely reset.
+Transactions are the fundamental unit of execution in the Stacks blockchain. Each transaction is originated from a [Stacks 2.0 account](/understand-stacks/accounts), and is retained in the Stacks blockchain history for eternity. This guide helps you understand Stacks 2.0 transactions.
 
-## Testnet API
+## Lifecycle
 
-The hosted [Stacks Blockchain API](/understand-stacks/stacks-blockchain-api) for the testnet is available at this base URL:
+Transactions go through phases before being finally confirmed, and available for all, on the Stacks 2.0 network.
 
-```shell
-https://stacks-node-api.testnet.stacks.co/
-```
+![Transaction lifecycle](/images/tx-lifecycle.png)
 
-### Faucet
+- **Generate**: Transactions are assembled according to the encoding specification.
+- **Validate and sign**: Transactions are validated to confirm they are well-formed. Required signatures are filled in.
+- **Broadcast**: Transactions are sent to a node.
+- **Register**: A miner receives transactions, verifies, and adds them to the ["mempool,"](https://academy.binance.com/en/glossary/mempool) a holding area for all the pending transactions.
+- **Process**: Miners review the mempool and select transactions for the next block to be mined. Depending on the transaction type, different actions can happen during this step. For example, post-conditions could be verified for a token transfer, smart-contract defined tokens could be minted, or an attempt to call an existing smart contract method could be made.
+- **Confirm**: Miners successfully mine blocks with a set of transactions. The transactions inside are successfully propagated to the network.
 
-The testnet faucet provides you with free Stacks Token (STX) to test with. These are not the same as STX on mainnet and have no value. You can get STX from the faucet on the [Stacks Explorer Sandbox](https://explorer.stacks.co/sandbox/faucet?chain=testnet), or using the [API](https://docs.hiro.so/api#tag/Faucets).
+-> A transaction can have one of three states once it is registered: `pending`, `success`, or `failed`.
 
-To get STX tokens from within the Explorer Sandbox, navigate to the "Faucet" tab and click "Request STX" button. If you would like to get enough STX tokens to try out [Stacking](/understand-stacks/stacking), and click "I want to stack."
+## Types
 
-> The Explorer Sandbox requires you to login with a Secret Key
+The Stacks 2.0 supports a set of different transaction types:
+
+| **Type**          | **Value**           | **Description**                                                                                                                                                                                       |
+| ----------------- | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Coinbase          | `coinbase`          | The first transaction in a new block (an entity holding several transactions). Used to register for block rewards. These are not manually generated and broadcasted like other types of transactions. |
+| Token transfer    | `token_transfer`    | Asset transfer from a sender to a recipient                                                                                                                                                           |
+| Contract deploy   | `smart_contract`    | Contract instantiation                                                                                                                                                                                |
+| Contract call     | `contract_call`     | Contract call for a public, non read-only function                                                                                                                                                    |
+| Poison Microblock | `poison_microblock` | Punish leaders who intentionally equivocate about the microblocks they package                                                                                                                        |
+
+A sample of each transaction type can be found in the [Stacks Blockchain API response definition for transactions](https://docs.hiro.so/api#operation/get_transaction_by_id).
+
+~> Read-only contract call calls do **not** require transactions. Read more about it in the [network guide](/understand-stacks/network#read-only-function-calls).
