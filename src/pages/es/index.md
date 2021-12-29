@@ -1,131 +1,74 @@
 ---
-title: Stacking
-description: Introduction to the reward mechanism of Proof-of-Transfer
+title: Mining
+description: A guide to mining on Stacks 2.0
+icon: TestnetIcon
 images:
-  sm: /images/pages/stacking-rounded.svg
+  large: /images/pages/testnet.svg
+  sm: /images/pages/testnet-sm.svg
 ---
 
 ## Introduction
 
-Stacking rewards Stacks (STX) token holders with bitcoin for providing a valuable service to the network by locking up their tokens for a certain time.
+This guide highlights some technical details related to mining on the Stacks 2.0 network.
 
-Stacking is a built-in action, required by the "proof-of-transfer" (PoX) mechanism. The PoX mechanism is executed by every miner on the Stacks 2.0 network.
+## Mining frequency
 
--> The Stacking consensus algorithm is implemented as a smart contract, using [Clarity](/write-smart-contracts/overview). [Read more about the contract](#stacking-contract).
+A new Stacks block may be mined once per Bitcoin block. To be considered for mining a block, a miner must have a block commit included in a Bitcoin block. If a miner wishes to update their commitment after submission, they may use Bitcoin Replace-By-Fee.
 
-## Stacking flow
+## Coinbase rewards
 
-The Stacking mechanism can be presented as a flow of actions:
+Miners receive coinbase rewards for blocks they win.
 
-![Stacking flow](/images/stacking-illustration.png)
+The reward amounts are:
 
-1. Make API calls to get details about the upcoming reward cycle
-2. For a specific Stacks account, confirm eligibility
-3. Confirm the BTC reward address and the lockup duration
-4. The transaction is broadcasted and the STX tokens are locked. This needs to happen before the prepare phase of the next reward cycle, the last 100 Bitcoin blocks of the ongoing reward phase
-5. The Stacking mechanism executes reward cycles and sends out rewards to the set BTC reward address
-6. During the lockup period, details about unlocking timing, rewards and more can be obtained
-7. Once the lockup period is passed, the tokens are released and accessible again
-8. Display reward history, including details like earnings for previous reward cycles
+- 1000 STX per block are released in the first 4 years of mining
+- 500 STX per block are released during the following 4 years
+- 250 STX per block are released during the following 4 years
+- 125 STX per block are released from then on indefinitely.
 
--> Keep in mind that the target duration for a reward cycles is ~2 weeks. This duration is based on the target block time of the network (10 minutes) and can be higher at times due to [confirmation time variances](https://www.blockchain.com/charts/median-confirmation-time) of the bitcoin network.
+These "halvings" are synchronized with Bitcoin halvings.
 
-If you would like to implement this flow in your own wallet, exchange, or any other application, please have a look at this tutorial:
+![coinbase rewards](/images/pages/coinbase-rewards.png)
 
-[@page-reference | inline] | /understand-stacks/integrate-stacking
+## Transaction fees
 
-[@page-reference | inline] | /understand-stacks/stacking-using-CLI
+Miners receive Stacks fees for transactions mined in any block they produce.
 
-## Stacking delegation flow
+For transactions mined in microblocks, the miner that produces the microblock receives 40% of the fees, while the miner that confirms the microblock receives 60% of the fees.
 
-The Stacking flow is different for delegation use cases:
+## Reward maturity
 
-![Delegated tacking flow](/images/stacking-delegation-illustration.png)
+Block rewards and transaction fees take 100 blocks on the Bitcoin blockchain to mature. After successfully mining a block your rewards appear in your Stacks account after ~24 hours.
 
-- Before Stacking can be initiated for a token holder, the delegator needs to be granted permission to Stack on behalf of the account owner. The permission is restricted to the maximum amount the delegator is allowed to Stack. The maximum amount is not limited by the available funds and can be set much higher. An account can only be associated with one single delegator
-- The account has to define the delegation relationship. They can optionally restrict the Bitcoin reward address that must be used for payouts, and the expiration burn block height for the permission, thus limiting the time a delegator has permission to Stack
-- Delegators have to lock Stacks from different accounts ("pooling phase") until they reach the minimum amount of Stacks required to participate in Stacking
-- Once a delegator locks enough STX tokens, they can finalize and commit their participation in the next reward cycle
-- Certain delegation relationships may allow the STX holder to receive the payout directly from the miner (step 5/6)
-- The termination of the delegation relationship can either happen automatically based on set expiration rules or by actively revoking delegation rights
+## Mining with proof-of-transfer
 
-## PoX mining
+Miners commit Bitcoin to **two** addresses in every leader block commit. The amount committed to each address must be the same. The addresses are chosen from the current reward set of stacking participants. Addresses are chosen using a verifiable-random-function, and determining the correct two addresses for a given block requires monitoring the Stacks chain.
 
-PoX mining is a modification of Proof-of-Burn (PoB) mining, where instead of sending the committed Bitcoin to a burn address, it's transferred to eligible STX holders that participate in the stacking protocol.
+![mining with pox](/images/pages/mining-with-pox.png)
 
--> A PoX miner can only receive newly minted STX tokens when they transfer Bitcoin to eligible owners of STX tokens
+100,000 Bitcoin blocks **after** mining begins, the PoX sunset phase begins. During this phase, an increasing proportion of the block commit must be burnt. To burn this sunset fee, the miner must send the sunset fee amount to the first output of their block commit transaction (that is, the OPRETURN output).
 
-![Mining flow](/images/pox-mining-flow.png)
+400,000 Bitcoin blocks after the sunset phase begins, the sunset phase ends. After this point, PoX is no longer active, and miners must burn all of their leader block commits. They do so by sending Bitcoin to the canonical burn address `1111111111111111111114oLvT2`.
 
-Miners run Stacks nodes with mining enabled to participate in the PoX mechanism. The node implements the PoX mechanism, which ensures proper handling and incentives through four key phases:
+## Probability to mine next block
 
-- Registration: miners register for a future election by sending consensus data to the network
-- Commitment: registered miners transfer Bitcoin to participate in the election. Committed BTC are sent to a set participating STX token holders
-- Election: a verifiable random function chooses one miner to write a new block on the Stacks blockchain
-- Assembly: the elected miner writes the new block and collects rewards in form of new STX tokens
+The miner who is selected to mine the next block is chosen depending on the amount of BTC the miners sent, that is, transferred or burnt.
 
-[@page-reference | inline] | /start-mining/mainnet, /start-mining/testnet
+The probability for a miner to mine the next block equals the BTC the miner sent divided by the total BTC all miners sent.
 
-## Token holder eligibility
+While there is no minimum BTC commitment enforced by the protocol, in practice, there's a floor constrained by [dust](https://unchained-capital.com/blog/dust-thermodynamics/)": basically, if the fees for a transaction exceed the value of the spent output, it's considered dust. How dust is [calculated](https://github.com/bitcoin/bitcoin/blob/master/src/policy/policy.cpp#L14) depends on a number of factors, we've found 5,500 satoshis to be good lower bound per [output](https://learnmeabitcoin.com/technical/output). Bitcoin transactions from Stacks miners contain two outputs (for Proof-of-Transfer), so a commitment of at least 11,000 satoshis / block is recommended.
 
-Stacks (STX) token holders don't automatically receive stacking rewards. Instead, they must:
+To calculate the amount of BTC to send miners should:
 
-- Commit to participation before a reward cycle begins
-- Commit the minimum amount of STX tokens to secure a reward slot, or pool with others to reach the minimum
-- Lock up STX tokens for a specified period
-- Provide a supported Bitcoin address to receive rewards (native segwit is not supported)
+- Guess the price BTC/STX for the next day (100 blocks later)
+- Guess the total amount of BTCs committed by all miners
 
-The following diagram describes how the minimum STX tokens per slot is determined. More information on [dynamic minimums for stacking](https://stacking.club) is available at stacking.club.
+## Microblocks
 
-![Dynamic minimum for individual eligibility](/images/stacking-dynamic-minimum.png)
+The Stacks blockchain produces blocks at the same rate as the Bitcoin blockchain. In order to provide lower latency transactions, miners can opt to enable microblocks. Microblocks allow the current block leader to stream transactions and include their state transitions in the current epoch.
 
-Token holders have a variety of providers and tools to support their participation in Stacking. The Stacks website contains a [list of stacking providers and pools](https://stacks.org/stacking#earn).
+If a block leader opts to produce microblocks, the next leader builds the chain tip off the last microblock that the current leader produces.
 
-## Stacking in the PoX consensus algorithm
+The block streaming model is described in [SIP-001][].
 
-Stacking is a built-in capability of PoX and occurs through a set of actions on the Stacks blockchain. The [full proof-of-transfer implementation details](https://github.com/blockstack/stacks-blockchain/blob/develop/sip/sip-007-stacking-consensus.md) are in SIP-007. Below is a summary of the most relevant actions of the algorithm.
-
-![PoX cycles](/images/pox-cycles.png)
-
-- Stacking happens over reward cycles with a fixed length. In each reward cycle, a set of Bitcoin addresses associated with stacking participants receive BTC rewards
-- A reward cycle consists of two phases: prepare and reward
-- During the prepare phase, miners decide on an anchor block and a reward set. Mining any descendant forks of the anchor block requires transferring mining funds to the appropriate reward addresses. The reward set is the set of Bitcoin addresses which are eligible to receive funds in the reward cycle
-- Miners register as leader candidates for a future election by sending a key transaction that burns cryptocurrency. The transaction also registers the leader's preferred chain tip (must be a descendant of the anchor block) and commitment of funds to 2 addresses from the reward set
-- Token holders register for the next rewards cycle by broadcasting a signed message that locks up associated STX tokens for a protocol-specified lockup period, specifies a Bitcoin address to receive the funds, and votes on a Stacks chain tip
-- Multiple leaders can commit to the same chain tip. The leader that wins the election and the peers who also burn for that leader collectively share the reward, proportional to how much each one burned
-- Token holders' locked up tokens automatically unlock as soon as the lockup period finishes
-
-## Stacking contract
-
-Check out the [Stacking contract reference](/references/stacking-contract) to see available methods and error codes.
-
-## Bitcoin address
-
-!> You must provide a BTC address in one of two formats: [Legacy (P2PKH)](https://en.bitcoin.it/wiki/Transaction#Pay-to-PubkeyHash), which starts with `1`. Or, [Segregated Witness / Segwit (P2SH)](https://en.bitcoin.it/wiki/Pay_to_script_hash), which starts with `3`. The "Native Segwit" format (which starts with "bc1"), for example, is not supported.
-
-The Stacking contract needs a special format for the Bitcoin address (the reward address). This is required to ensure that miners are able to correctly construct the Bitcoin transaction containing the reward address.
-
-The address must be specified in the following format using the Clarity language:
-
-```clar
-;; a tuple of a version and hashbytes buffer
-(pox-addr (tuple (version (buff 1)) (hashbytes (buff 20))))
-```
-
-The `version` buffer must represent what kind of bitcoin address is being submitted. It can be one of the following:
-
-```js
-SerializeP2PKH  = 0x00, // hash160(public-key), same as bitcoin's p2pkh
-SerializeP2SH   = 0x01, // hash160(multisig-redeem-script), same as bitcoin's multisig p2sh
-SerializeP2WPKH = 0x02, // hash160(segwit-program-00(p2pkh)), same as bitcoin's p2sh-p2wpkh
-SerializeP2WSH  = 0x03, // hash160(segwit-program-00(public-keys)), same as bitcoin's p2sh-p2wsh
-```
-
-The `hashbytes` are the 20 hash bytes of the bitcoin address. You can obtain that from a bitcoin library, for instance using [`bitcoinjs-lib`](https://github.com/bitcoinjs/bitcoinjs-lib):
-
-```js
-const btc = require('bitcoinjs-lib');
-console.log(
-  '0x' + btc.address.fromBase58Check('1C56LYirKa3PFXFsvhSESgDy2acEHVAEt6').hash.toString('hex')
-);
-```
+[SIP-001]: https://github.com/stacksgov/sips/blob/main/sips/sip-001/sip-001-burn-election.md#operation-as-a-leader
