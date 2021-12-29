@@ -1,24 +1,24 @@
 ---
-title: BNS Contract
-description: See a detailed list of all functions and error codes of the BNS contract.
+title: FAQs
+description: Find answers related to the Stacks ecosystem.
 ---
 
-export { convertBNSRefToMdx as getStaticProps } from '@common/data/bns-ref' import { BNSErrorcodeReference, BNSFunctionReference } from '@components/bns-ref'
+## General Information
 
-## Introduction
+Learn more about the user-owned internet on Bitcoin and the Stacks ecosystem on [stacks.co](https://stacks.co).
 
-The [Blockchain Naming System (BNS)](/build-apps/references/bns) is implemented as a smart contract using Clarity.
+## Apps and Smart Contracts
 
-Below is a list of public and read-only functions as well as error codes that can be returned by those methods.
+Developers, get started building apps and contracts on the [developer page at stacks.co](https://www.stacks.co/developers).
 
-## Public functions
+## Stacks Network
 
-<BNSFunctionReference {...props.mdx.publicFunctions} />
+Learn more about the network behind the user-owned internet on Bitcoin in the [Understand Stacks chapter](/understand-stacks/overview) in the docs.
 
-## Read-only functions
+## Stacks Token
 
-<BNSFunctionReference {...props.mdx.readonlyFunctions} />
+Stacks fuel apps and smart contracts on Bitcoin. Learn more at [stackstoken.com](https://stackstoken.com/faq).
 
-## Error codes
+## Stacks Wallet
 
-<BNSErrorcodeReference {...props.mdx.errorCodes} />
+Download and find resources about the Stacks Wallet by Hiro at [hiro.so](https://www.hiro.so/wallet).
